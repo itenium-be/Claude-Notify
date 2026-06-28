@@ -3,7 +3,7 @@
   [string]$Folder = "",
   [string]$Event = "done",
   [string]$Sound = "",
-  [int]$Seconds = 8,
+  [int]$Seconds = 0,   # 0 = stay until clicked or the target terminal is focused
   [switch]$DryRun
 )
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Windows.Forms, System.Drawing
@@ -14,6 +14,7 @@ public class WinFocus {
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n);
   [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
   public const int SW_RESTORE = 9;
 
   [StructLayout(LayoutKind.Sequential)]
@@ -42,24 +43,39 @@ if ($DryRun) { Write-Output ("screen={0} wa={1},{2},{3}x{4}" -f $screen.DeviceNa
 # Flash the originating terminal (taskbar + title bar) until it gets focus.
 if ($Hwnd -ne 0) { try { [WinFocus]::Flash([IntPtr]$Hwnd) } catch {} }
 
+# Without a target window we can't auto-close on focus, so fall back to a timeout.
+if ($Hwnd -eq 0 -and $Seconds -le 0) { $Seconds = 15 }
+
 # --- Per-event styling ---
 if ($Event -eq 'needs-input') {
   $statusText = 'Needs you'; $accent = '#FF7A18'
   $indicator = @"
-<TextBlock Text="&#x1F44B;" FontSize="46" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.85">
-  <TextBlock.RenderTransform><RotateTransform Angle="0"/></TextBlock.RenderTransform>
-  <TextBlock.Triggers>
+<Rectangle Width="58" Height="58" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.85">
+  <Rectangle.Fill>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+      <GradientStop Color="#FF5F6D" Offset="0"/><GradientStop Color="#FFD93D" Offset="0.3"/>
+      <GradientStop Color="#3CFFB0" Offset="0.55"/><GradientStop Color="#36D1DC" Offset="0.78"/>
+      <GradientStop Color="#A56BFF" Offset="1"/>
+    </LinearGradientBrush>
+  </Rectangle.Fill>
+  <Rectangle.OpacityMask>
+    <VisualBrush Stretch="Uniform"><VisualBrush.Visual>
+      <TextBlock Text="&#x1F44B;" FontSize="60" FontFamily="Segoe UI Emoji"/>
+    </VisualBrush.Visual></VisualBrush>
+  </Rectangle.OpacityMask>
+  <Rectangle.RenderTransform><RotateTransform Angle="0"/></Rectangle.RenderTransform>
+  <Rectangle.Triggers>
     <EventTrigger RoutedEvent="FrameworkElement.Loaded">
       <BeginStoryboard><Storyboard RepeatBehavior="Forever" AutoReverse="True">
         <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" From="-25" To="25" Duration="0:0:0.28"/>
       </Storyboard></BeginStoryboard>
     </EventTrigger>
-  </TextBlock.Triggers>
-</TextBlock>
+  </Rectangle.Triggers>
+</Rectangle>
 "@
 } else {
   $statusText = 'Done!'; $accent = '#22C55E'
-  $indicator = '<Canvas x:Name="fx" Width="64" Height="64"/>'
+  $indicator = '<Canvas x:Name="fx" Width="64" Height="64" HorizontalAlignment="Center" VerticalAlignment="Center"/>'
 }
 
 # --- Layout (XAML) ---
@@ -71,7 +87,7 @@ $xaml = @"
         Width="620" Height="240" Opacity="0">
   <Border CornerRadius="24" Margin="14">
     <Border.Background>
-      <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+      <LinearGradientBrush x:Name="rimBrush" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Color="#7C3AED" Offset="0"/><GradientStop Color="#2563EB" Offset="0.17"/>
         <GradientStop Color="#06B6D4" Offset="0.34"/><GradientStop Color="#22C55E" Offset="0.5"/>
         <GradientStop Color="#EAB308" Offset="0.67"/><GradientStop Color="#F97316" Offset="0.84"/>
@@ -79,15 +95,12 @@ $xaml = @"
       </LinearGradientBrush>
     </Border.Background>
     <Border.Effect><DropShadowEffect BlurRadius="30" ShadowDepth="5" Opacity="0.55"/></Border.Effect>
-    <Border CornerRadius="21" Margin="3" Background="#18181B" ClipToBounds="True">
+    <Border x:Name="card" CornerRadius="21" Margin="3" Background="#18181B" ClipToBounds="True">
       <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*"/>
-          <ColumnDefinition Width="Auto"/>
-        </Grid.ColumnDefinitions>
-
-        <!-- Big rainbow unicorn, masked as a background image on the right -->
-        <Rectangle Grid.Column="1" Width="220" Margin="0,0,4,-10" Opacity="0.92">
+        <!-- Big rainbow unicorn background, bleeding to the card edges (rounded clip
+             on the card keeps it from spilling onto the rim).
+             VerticalAlignment must stay Stretch: a Rectangle with no Height collapses otherwise. -->
+        <Rectangle Panel.ZIndex="0" Width="210" HorizontalAlignment="Right" VerticalAlignment="Stretch" Margin="0" Opacity="0.92">
           <Rectangle.Fill>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
               <GradientStop Color="#FF5F6D" Offset="0"/><GradientStop Color="#FFC371" Offset="0.28"/>
@@ -104,12 +117,12 @@ $xaml = @"
           </Rectangle.OpacityMask>
         </Rectangle>
 
-        <!-- Left content -->
-        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="26,0,0,0">
+        <!-- Content layer, always above the unicorn -->
+        <StackPanel Panel.ZIndex="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="26,0,0,0">
           <StackPanel Orientation="Horizontal">
             <TextBlock x:Name="logo" FontFamily="Cascadia Mono, Consolas, Courier New" FontSize="16"
                        Foreground="#D97757" LineHeight="16" LineStackingStrategy="BlockLineHeight"
-                       VerticalAlignment="Center"/>
+                       Width="104" TextAlignment="Left" VerticalAlignment="Center"/>
             <TextBlock x:Name="status" FontSize="34" FontWeight="Bold" Margin="16,0,0,0" VerticalAlignment="Center"/>
             <Grid Margin="14,0,0,0" Width="64" Height="64" VerticalAlignment="Center">$indicator</Grid>
           </StackPanel>
@@ -125,9 +138,12 @@ $xaml = @"
 $win = [Windows.Markup.XamlReader]::Parse($xaml)
 
 # --- Fill dynamic content ---
-# Claude mark, drawn from block-element glyphs (all BMP, so [char] is encoding-safe)
+# Claude mark, drawn from block-element glyphs (all BMP, so [char] is encoding-safe).
+# Two frames: alternating them rocks the mark left/right so it "waves".
 $b = @{ FB=[char]0x2590; TL=[char]0x259B; FU=[char]0x2588; TR=[char]0x259C; HL=[char]0x258C; QTR=[char]0x259D; QTL=[char]0x2598 }
-$win.FindName('logo').Text = " $($b.FB)$($b.TL)$($b.FU)$($b.FU)$($b.FU)$($b.TR)$($b.HL)`n$($b.QTR)$($b.TR)$($b.FU)$($b.FU)$($b.FU)$($b.FU)$($b.FU)$($b.TL)$($b.QTL)`n  $($b.QTL)$($b.QTL) $($b.QTR)$($b.QTR)"
+$logoFrame1 = " $($b.FB)$($b.TL)$($b.FU)$($b.FU)$($b.FU)$($b.TR)$($b.HL)`n$($b.QTR)$($b.TR)$($b.FU)$($b.FU)$($b.FU)$($b.FU)$($b.FU)$($b.TL)$($b.QTL)`n  $($b.QTL)$($b.QTL) $($b.QTR)$($b.QTR)"
+$logoFrame2 = "$($b.QTR)$($b.FB)$($b.TL)$($b.FU)$($b.FU)$($b.FU)$($b.TR)$($b.HL)$($b.QTL)`n $($b.TR)$($b.FU)$($b.FU)$($b.FU)$($b.FU)$($b.FU)$($b.TL)`n  $($b.QTL)$($b.QTL) $($b.QTR)$($b.QTR)"
+$logo = $win.FindName('logo'); $logo.Text = $logoFrame1
 $st = $win.FindName('status'); $st.Text = $statusText
 $st.Foreground = New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString($accent))
 $win.FindName('folder').Text = $Folder
@@ -167,6 +183,15 @@ function Start-Fireworks($canvas) {
 
 # --- Position on the target monitor (DPI-correct), fade in, kick off fireworks ---
 $win.Add_Loaded({
+  # Round-clip the card so edge-bleeding content follows the corner radius (a Border
+  # with CornerRadius does NOT clip its children to the rounded shape on its own).
+  $card = $win.FindName('card')
+  if ($card) {
+    $cg = New-Object System.Windows.Media.RectangleGeometry
+    $cg.Rect = New-Object System.Windows.Rect 0, 0, $card.ActualWidth, $card.ActualHeight
+    $cg.RadiusX = 21; $cg.RadiusY = 21
+    $card.Clip = $cg
+  }
   $src = [System.Windows.PresentationSource]::FromVisual($win)
   $sx = $src.CompositionTarget.TransformToDevice.M11
   $sy = $src.CompositionTarget.TransformToDevice.M22
@@ -176,6 +201,17 @@ $win.Add_Loaded({
   $fade = New-Object System.Windows.Media.Animation.DoubleAnimation 0, 1, ([System.Windows.Duration][TimeSpan]::FromMilliseconds(250))
   $win.BeginAnimation([System.Windows.Window]::OpacityProperty, $fade)
   if ($Event -eq 'done') { Start-Fireworks ($win.FindName('fx')) }
+
+  # Continuously rotate the rainbow rim so the colours travel around the border.
+  $rimBrush = $win.FindName('rimBrush')
+  if ($rimBrush) {
+    $rot = New-Object System.Windows.Media.RotateTransform
+    $rot.CenterX = 0.5; $rot.CenterY = 0.5
+    $rimBrush.RelativeTransform = $rot
+    $spin = New-Object System.Windows.Media.Animation.DoubleAnimation 0, 360, ([System.Windows.Duration][TimeSpan]::FromSeconds(4))
+    $spin.RepeatBehavior = [System.Windows.Media.Animation.RepeatBehavior]::Forever
+    $rot.BeginAnimation([System.Windows.Media.RotateTransform]::AngleProperty, $spin)
+  }
 })
 
 # --- Click to focus the originating terminal window ---
@@ -187,9 +223,25 @@ $win.Add_MouseLeftButtonDown({
   $win.Close()
 })
 
-# --- Auto-dismiss ---
-$timer = New-Object System.Windows.Threading.DispatcherTimer
-$timer.Interval = [TimeSpan]::FromSeconds($Seconds)
-$timer.Add_Tick({ $timer.Stop(); $win.Close() })
-$timer.Start()
+# --- Wave the Claude mark (needs-input only) by toggling its two frames ---
+if ($Event -eq 'needs-input') {
+  $script:logoOn = $false
+  $logoTimer = New-Object System.Windows.Threading.DispatcherTimer
+  $logoTimer.Interval = [TimeSpan]::FromMilliseconds(280)
+  $logoTimer.Add_Tick({ $script:logoOn = -not $script:logoOn; $logo.Text = $(if ($script:logoOn) { $logoFrame2 } else { $logoFrame1 }) })
+  $logoTimer.Start()
+}
+
+# --- Dismiss: close when the target terminal gains focus; optional timeout ---
+$script:elapsed = 0.0
+$poll = New-Object System.Windows.Threading.DispatcherTimer
+$poll.Interval = [TimeSpan]::FromMilliseconds(400)
+$poll.Add_Tick({
+  if ($Hwnd -ne 0 -and [WinFocus]::GetForegroundWindow() -eq [IntPtr]$Hwnd) { $poll.Stop(); $win.Close(); return }
+  if ($Seconds -gt 0) {
+    $script:elapsed += 0.4
+    if ($script:elapsed -ge $Seconds) { $poll.Stop(); $win.Close() }
+  }
+})
+$poll.Start()
 $win.ShowDialog() | Out-Null
