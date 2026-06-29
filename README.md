@@ -3,7 +3,7 @@
 Themed Windows (WSL) Claude notification hooks, whatever theme you fancy, be it 🦄, 🌸, 🐉
 or The Matrix, we've got you covered. Fully configurable.
 
-<video src="https://github.com/itenium-be/Yoink/raw/main/site/assets/yoink-unicorn.mp4" autoplay loop muted playsinline></video>
+https://github.com/user-attachments/assets/b16b3f91-b900-4e51-b003-3229ced40572
 
 
 ## Install

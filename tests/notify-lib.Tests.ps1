@@ -138,6 +138,12 @@ $lines3 = @(Resolve-BodyLines @(@{ text='hello'; style='sub' }) @{})
 Assert-Eq $lines3.Count 1 "pure literal kept"
 Assert-Eq $lines3[0].text 'hello' "pure literal text"
 
+# literal special chars at the edges survive when the token resolves
+$lines4 = @(Resolve-BodyLines @(@{ text='/{{folder}}/'; style='sub' }) @{ folder='notify' })
+Assert-Eq $lines4[0].text '/notify/' "edge slashes kept around resolved token"
+$lines5 = @(Resolve-BodyLines @(@{ text='[{{folder}}] | {{branch}}'; style='sub' }) @{ folder='notify'; branch='' })
+Assert-Eq $lines5[0].text '[notify]' "literal brackets kept, dangling | from empty token dropped"
+
 # --- Get-StopColors ---
 $cols = @(Get-StopColors @('#FF0000 0','#00FF00 0.5','#0000FF 1'))
 Assert-Eq $cols.Count 3 "stop colors count"
@@ -155,7 +161,7 @@ Assert-Eq (Resolve-Event $cfgNoInd 'needs-input').indicator '👋' "missing indi
 $cfgEmptySnd = [pscustomobject]@{ events = [pscustomobject]@{ 'done' = [pscustomobject]@{ sound = '' } } }
 Assert-Eq (Resolve-Event $cfgEmptySnd 'done').sound '' "explicit empty sound honored"
 $cfgNoSnd = [pscustomobject]@{ events = [pscustomobject]@{ 'done' = [pscustomobject]@{ label = 'Y' } } }
-Assert-Eq (Resolve-Event $cfgNoSnd 'done').sound 'asterisk' "missing sound falls back to default"
+Assert-Eq ([bool](Resolve-Event $cfgNoSnd 'done').sound) $false "missing sound -> silent (no fallback)"
 
 # --- Get-PlaySoundWhenTerminalActive: top-level toggle, default true ---
 Assert-Eq (Get-PlaySoundWhenTerminalActive ([pscustomobject]@{})) 'True' "missing toggle -> default true"

@@ -172,10 +172,12 @@ function Resolve-Event($cfg, [string]$event) {
   $defs = (Get-NotifyDefaults).events
   $def = $defs[$event]; if ($null -eq $def) { $def = $defs['done'] }
   $e = Get-Prop (Get-Prop $cfg 'events') $event
-  # indicator / sound: an explicit "" is honored as-is (no badge / no sound); only a
-  # MISSING key (null) falls back to the default. (Coalesce can't tell "" from absent.)
+  # indicator: an explicit "" is honored as-is (no badge); only a MISSING key (null) falls
+  # back to the default. (Coalesce can't tell "" from absent.)
   $ind = Get-Prop $e 'indicator'; if ($null -eq $ind) { $ind = $def.indicator }
-  $snd = Get-Prop $e 'sound';     if ($null -eq $snd) { $snd = $def.sound }
+  # sound is a gate, not a value: a missing key means silence, never the default toggle —
+  # absent sound never plays one.
+  $snd = Get-Prop $e 'sound'
   $ftr = Get-Prop $e 'footer';    if ($null -eq $ftr) { $ftr = $def.footer }
   @{
     label     = (Coalesce (Get-Prop $e 'label')     $def.label)
@@ -200,11 +202,12 @@ function Get-StopColors([string[]]$stops) {
 }
 
 # Expand {{tokens}} in $tpl against $ctx. Returns the cleaned string, or $null when the
-# template HAS tokens that ALL resolve empty (caller drops it). Dangling separator chars
-# are trimmed; a pure-literal template is always kept.
+# template HAS tokens that ALL resolve empty (caller drops it). A token that resolves empty
+# takes its adjacent separators with it, so no dangling " · " / "/" is left behind — but
+# separators that are literal text (around resolved tokens, or in a pure literal) are kept.
 function Expand-Template([string]$tpl, [hashtable]$ctx) {
   $rx = [regex]'\{\{(\w+)\}\}'
-  $sep = " `t·-|/".ToCharArray()
+  $sep = '[ \t·\-|/]'
   $names = @($rx.Matches($tpl) | ForEach-Object { $_.Groups[1].Value })
   $vals = @{}; $anyVal = $false
   foreach ($n in $names) {
@@ -214,8 +217,12 @@ function Expand-Template([string]$tpl, [hashtable]$ctx) {
     if ($v -ne '') { $anyVal = $true }
   }
   if ($names.Count -ge 1 -and -not $anyVal) { return $null }
-  $text = $rx.Replace($tpl, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $vals[$m.Groups[1].Value] })
-  $text = ($text -replace '\s+', ' ').Trim().Trim($sep).Trim()
+  $text = $tpl
+  foreach ($n in @($names | Where-Object { $vals[$_] -eq '' } | Select-Object -Unique)) {
+    $text = $text -replace "$sep*\{\{$n\}\}$sep*", ''
+  }
+  $text = $rx.Replace($text, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $vals[$m.Groups[1].Value] })
+  $text = ($text -replace '\s+', ' ').Trim()
   if ($text -eq '') { return $null }
   return $text
 }
