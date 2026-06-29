@@ -24,4 +24,16 @@ check "agents blank when zero" '.agents' ''
 check "event"         '.event'          'needs-input'
 check "permission"    '.permission_mode' 'default'
 
+# "1 agent" is the main thread alone; the badge counts only subagents (count - 1).
+agents_for() {
+  local count="$1"
+  local trf="$TMP/tr-$count.jsonl"
+  sed "s#\"pendingBackgroundAgentCount\":0#\"pendingBackgroundAgentCount\":$count#" "$TMP/transcript.jsonl" >"$trf"
+  printf '%s' "$STDIN" | sed "s#$TMP/transcript.jsonl#$trf#" | bash "$ROOT/notify-context.sh" needs-input | jq -r '.agents'
+}
+checke() { if [[ "$(agents_for "$2")" == "$3" ]]; then echo "ok: $1"; else echo "FAIL: $1 -> [$(agents_for "$2")]"; fail=1; fi; }
+checke "agents blank when one"  1 ''
+checke "agents subtracts one"   2 '1'
+checke "agents subtracts one (many)" 5 '4'
+
 exit $fail

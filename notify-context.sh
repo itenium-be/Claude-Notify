@@ -25,8 +25,9 @@ REPO=""; TOP="$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null || true)"
 [[ -n "$TOP" ]] && REPO="$(basename "$TOP")"
 DIRTY=""; [[ -n "$(git -C "$CWD" status --porcelain 2>/dev/null)" ]] && DIRTY="●"
 
-# Blank a zero/empty agent count so the "{{agents}} agents running" line drops out.
-[[ "$AGENTS" == "0" || -z "$AGENTS" ]] && AGENTS=""
+# "1 agent" is the main thread alone, so the badge counts only subagents (count - 1)
+# and drops out (blank) when none are running.
+if [[ -z "$AGENTS" || "$AGENTS" -le 1 ]]; then AGENTS=""; else AGENTS=$(( AGENTS - 1 )); fi
 
 trunc() { local s="$1" n=300; if (( ${#s} > n )); then printf '%s…' "${s:0:n}"; else printf '%s' "$s"; fi; }
 LPROMPT="$(trunc "$LPROMPT")"; LASSIST="$(trunc "$LASSIST")"
