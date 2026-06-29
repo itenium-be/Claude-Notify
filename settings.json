@@ -8,8 +8,8 @@
         { "text": "{{folder}}",  "style": "sub" }
       ],
       "footer": [
-        { "badge": "{{branch}}",    "color": "#FFFFFF", "background": "" },
-        { "badge": "{{agents}} 🤖", "color": "",        "background": "" }
+        { "badge": "{{branch}}",    "color": "#F5F3FF", "background": "#7C3AED" },
+        { "badge": "{{agents}} 🤖", "color": "#ECFEFF", "background": "#0891B2" }
       ]
     },
     "done": {
@@ -19,8 +19,8 @@
         { "text": "{{folder}}",         "style": "sub" }
       ],
       "footer": [
-        { "badge": "{{branch}}",    "color": "#FFFFFF", "background": "" },
-        { "badge": "{{agents}} 🤖", "color": "",        "background": "" }
+        { "badge": "{{branch}}",    "color": "#F5F3FF", "background": "#7C3AED" },
+        { "badge": "{{agents}} 🤖", "color": "#ECFEFF", "background": "#0891B2" }
       ]
     }
   },
