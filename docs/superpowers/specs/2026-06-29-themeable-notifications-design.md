@@ -11,8 +11,10 @@ literals. We want this driven by a config file with multiple selectable themes.
 ## Goal
 
 Move the styling into a `settings.json` next to the renderer. Ship 9 themes.
-Keep the renderer's geometry, timings, and the Claude block-glyph logo hardcoded
-(out of scope). Deleting `settings.json` must reproduce today's exact look.
+Make the notification **body** a per-event template of `{{token}}` placeholders
+resolved from the context documented in `AVAILABLE_CONTEXT.md`. Keep the renderer's
+geometry, timings, and the Claude block-glyph logo hardcoded (out of scope).
+Deleting `settings.json` must reproduce today's exact look.
 
 ## Format
 
@@ -39,6 +41,8 @@ Two concepts, split by what they own:
     `"fireworks"` (renders the particle burst, also the mascot-missing fallback)
   - `mascot` — PNG flipbook folder under `mascots/` (left slot)
   - `sound` — `"exclamation"`, `"asterisk"`, or a path to a `.wav`
+  - `body` — array of styled lines, each `{ "text": "<template>", "style": "headline|sub|muted" }`,
+    where `<template>` may contain `{{token}}` placeholders (see Body templating)
 
 Top-level `activeTheme` selects the theme by name, or `"random"` to pick a
 different theme on each popup.
@@ -54,8 +58,22 @@ reads as a scannable ordered list. Parsing: split on whitespace → `(color, off
 {
   "activeTheme": "unicorn",
   "events": {
-    "needs-input": { "label": "Needs you", "accent": "#FF7A18", "indicator": "👋",        "mascot": "flag",     "sound": "exclamation" },
-    "done":        { "label": "Done!",     "accent": "#22C55E", "indicator": "fireworks", "mascot": "confetti", "sound": "asterisk" }
+    "needs-input": {
+      "label": "Needs you", "accent": "#FF7A18", "indicator": "👋", "mascot": "flag", "sound": "exclamation",
+      "body": [
+        { "text": "{{message}}",             "style": "headline" },
+        { "text": "{{folder}} · {{branch}}",  "style": "sub" },
+        { "text": "{{last_prompt}}",          "style": "muted" }
+      ]
+    },
+    "done": {
+      "label": "Done!", "accent": "#22C55E", "indicator": "fireworks", "mascot": "confetti", "sound": "asterisk",
+      "body": [
+        { "text": "{{last_assistant}}",       "style": "headline" },
+        { "text": "{{folder}} · {{branch}}",  "style": "sub" },
+        { "text": "{{agents}} agents running", "style": "muted" }
+      ]
+    }
   },
   "themes": {
     "<name>": {
@@ -153,6 +171,67 @@ eye after first render.)
 }
 ```
 
+## Body templating
+
+The notification body is a per-event `body` array of styled lines. Each line's
+`text` is a template that may embed `{{token}}` placeholders; `style` picks the
+typography. The big `label` ("Needs you"/"Done!") above the body and the fixed
+`click to focus` footer below it are not part of `body`.
+
+Styles (reuse current typography):
+
+| style      | size | colour    | weight   |
+|------------|------|-----------|----------|
+| `headline` | 22   | `#FFFFFF` | SemiBold |
+| `sub`      | 19   | `#FFFFFF` | Normal   |
+| `muted`    | 13   | `#999999` | Normal   |
+
+Unknown style → `sub`.
+
+### Context tokens
+
+Resolved from the sources in `AVAILABLE_CONTEXT.md`:
+
+| Token                 | Source                                                      |
+|-----------------------|------------------------------------------------------------|
+| `{{folder}}`          | `basename "$cwd"`                                           |
+| `{{cwd}}`             | stdin `cwd`                                                 |
+| `{{repo}}`            | `basename "$(git -C "$cwd" rev-parse --show-toplevel)"`     |
+| `{{branch}}`          | transcript `gitBranch`, else `git -C "$cwd" branch --show-current` |
+| `{{dirty}}`           | `●` if `git -C "$cwd" status --porcelain` non-empty, else `` |
+| `{{message}}`         | stdin `message` (the needs-input reason)                   |
+| `{{last_prompt}}`     | transcript `last-prompt.lastPrompt`                        |
+| `{{last_assistant}}`  | transcript last assistant `text` block                     |
+| `{{model}}`           | transcript `message.model`                                 |
+| `{{agents}}`          | transcript `pendingBackgroundAgentCount`                   |
+| `{{pending_tool}}`    | transcript last `tool_use.name`                            |
+| `{{permission_mode}}` | stdin `permission_mode`                                     |
+| `{{event}}`           | `done` / `needs-input`                                      |
+
+`last_prompt` and `last_assistant` are truncated to ~120 chars (ellipsis) at gather time.
+
+### Resolution flow
+
+1. **Gather (bash, `notify-fire.sh`)** — build a JSON object of the tokens above and
+   write it to `sessions/$SID.ctx.json`; pass its Windows path via a new `-Context`
+   param. Each value is best-effort: a failed `jq`/`git` call yields `""`, never an error.
+2. **Substitute (ps1)** — load the context file and merge it over
+   `{ folder = $Folder, event = $Event }` (so a manual run with no context file still
+   shows the folder). For each body line, replace every `{{token}}` with its value
+   (unknown token → `""`).
+3. **Clean** — per line, in order:
+   - If the line contains **≥1 token and every token resolved empty**, drop the whole
+     line (literal text included). So `{{agents}} agents running` with no agents
+     disappears instead of rendering "agents running".
+   - Otherwise collapse internal whitespace runs and strip leading/trailing separator
+     chars (` ·-|/`). So `{{folder}} · {{branch}}` with no branch renders `folder`
+     with no dangling `·`.
+   - If the result is still empty/whitespace-only, drop it.
+   - A line with **no tokens** (pure literal) is always kept.
+4. **Render** — add a `TextBlock` per surviving line to a named `bodyPanel`
+   `StackPanel` (count is dynamic), styled per the table above, with
+   `TextTrimming="CharacterEllipsis"`.
+
 ## Rendering changes (`show-notification.ps1`)
 
 1. After param parsing, load config: `$cfg = Get-NotifyConfig $PSScriptRoot`.
@@ -171,18 +250,23 @@ eye after first render.)
      `$theme.gradient`; `"fireworks"` → the `fx` canvas (particles use `$theme.palette`).
    - `Start-Fireworks` reads `$theme.palette` instead of the literal array.
    - mascot folder ← `$ev.mascot`; sound ← `$ev.sound`.
+   - body: read `-Context` json (merged over `{folder,event}`), substitute `{{token}}`
+     in each `$ev.body` line, clean, and add a `TextBlock` per surviving line to the
+     named `bodyPanel` (replaces the single hardcoded `folder` TextBlock).
 
-The block-glyph Claude logo, window size/position, fade/spin/wave timings, and the
-mascot flipbook framerate stay hardcoded.
+The block-glyph Claude logo, the `click to focus` footer, window size/position,
+fade/spin/wave timings, and the mascot flipbook framerate stay hardcoded.
 
 ## Components
 
 | Unit                | Responsibility                                                        |
 |---------------------|-----------------------------------------------------------------------|
-| `settings.json`     | All theme + event data. The only file a user edits to restyle.        |
+| `settings.json`     | All theme + event + body data. The only file a user edits to restyle.  |
 | `$DEFAULTS`         | In-script fallback identical to today's look; used when config absent. |
 | `Get-NotifyConfig`  | Read + parse + merge config over `$DEFAULTS`. Never throws.            |
 | `New-GradientStops` | `["#hex off", ...]` → XAML `<GradientStop>` lines.                     |
+| `Resolve-Body`      | body templates + context → cleaned, styled `TextBlock`s in `bodyPanel`. |
+| `notify-fire.sh`    | Gather context tokens → `sessions/$SID.ctx.json`, pass `-Context`.      |
 | XAML build          | Inline theme/event values into the existing layout.                   |
 
 ## Error handling
@@ -193,6 +277,9 @@ mascot flipbook framerate stay hardcoded.
 - Missing event or field → fall back to that field's default.
 - Bad gradient stop (no parseable `#hex offset`) → skip that stop; if a gradient
   ends up empty, use the default theme's corresponding gradient.
+- Missing context file or failed token gather → that token resolves to `""`; lines
+  collapse/drop per the cleaning rules. `{{folder}}` still resolves from `-Folder`.
+- Unknown token or unknown line `style` → `""` / `sub` respectively (no throw).
 
 ## Testing / verification
 
@@ -205,8 +292,12 @@ PowerShell + WPF has no unit harness here; verification is layered:
    built `$xaml` behind a `-EmitXaml` debug switch; diff against a golden file).
 3. **Per-theme render** — loop the 9 themes through the acceptance command, assert
    exit 0 and no error output for each.
-4. **Visual check** — render 2–3 themes for both events, screenshot, eyeball:
-   correct hero emoji, rim/card colours, indicator matches theme, mascot intact.
+4. **Body substitution** — feed a fixed context file with known token values plus a
+   body template exercising present, empty, and unknown tokens; assert the cleaned
+   lines (via `-EmitXaml`) match expected: separators trimmed, empty lines dropped.
+5. **Visual check** — render 2–3 themes for both events, screenshot, eyeball:
+   correct hero emoji, rim/card colours, indicator matches theme, mascot intact,
+   body lines resolved and styled.
 
 ## Acceptance
 
@@ -221,6 +312,8 @@ the current look exactly.
 
 ## Out of scope
 
-Window geometry, timings, the Claude block-glyph logo, the mascot PNG frames
-themselves, and per-theme mascot overrides (events keep one mascot folder each).
+Window geometry, timings, the Claude block-glyph logo, the `click to focus` footer,
+the mascot PNG frames themselves, and per-theme mascot overrides (events keep one
+mascot folder each). New context tokens beyond the table above (the gather list is
+fixed for this iteration).
 ```
