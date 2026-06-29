@@ -1,0 +1,16 @@
+{
+  "name": "yoink-marketplace",
+  "owner": {
+    "name": "itenium",
+    "url": "https://github.com/itenium-be"
+  },
+  "metadata": {
+    "description": "Themed Windows/WSL notification hooks for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "yoink",
+      "source": "./"
+    }
+  ]
+}

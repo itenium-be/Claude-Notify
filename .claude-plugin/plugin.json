@@ -1,0 +1,11 @@
+{
+  "name": "yoink",
+  "version": "1.0.0",
+  "description": "Themed Windows/WSL notifications for Claude Code — unicorn, sakura, dragon, Matrix & more.",
+  "author": {
+    "name": "itenium",
+    "email": "wouter.van.schandevijl@itenium.be"
+  },
+  "homepage": "https://itenium-be.github.io/Yoink/",
+  "hooks": "./hooks/hooks.json"
+}
