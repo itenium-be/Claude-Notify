@@ -16,5 +16,6 @@ check "needs-input body array" "jq -e '.events[\"needs-input\"].body|type==\"arr
 check "done body array"       "jq -e '.events.done.body|type==\"array\"' '$F' >/dev/null"
 check "every theme has hero/gradient/rim/card" \
   "[[ \"\$(jq '[.themes[]|select(.hero and .gradient and .rim and .card)]|length' '$F')\" == '9' ]]"
+check "ocean has waves scene" "[[ \"\$(jq -r '.themes.ocean.scene.kind // empty' '$F')\" == 'waves' ]]"
 
 exit $fail
