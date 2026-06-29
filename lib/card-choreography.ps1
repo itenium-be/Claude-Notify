@@ -1,10 +1,10 @@
 # Mascot + scene choreography for an already-laid-out card. $box is the bag from
 # New-NotificationBox (or a card hosted elsewhere). $Root is the repo root (for mascot art).
 # Requires the mascot-*, scene-* libs to be dot-sourced by the caller.
-function Start-CardChoreography($box, $theme, $ev, [string]$Root) {
+function Start-CardChoreography($box, $theme, $ev) {
   # Normalized frames share one canvas; the creature sits at a fixed anchor inside it
   # (torso-centre x, feet-baseline y). One display height drives every phase.
-  $anchor = Get-Content (Join-Path $Root 'mascots\anchor.json') -Raw | ConvertFrom-Json
+  $anchor = Get-Content (Join-Path $PSScriptRoot '..\mascots\anchor.json') -Raw | ConvertFrom-Json
   $box.MascotH = 243.0
   $box.DisplayScale = $box.MascotH / $anchor.canvasH   # on-screen px per canvas px (shared by all clips)
 
@@ -13,12 +13,12 @@ function Start-CardChoreography($box, $theme, $ev, [string]$Root) {
   $core = @{ W = $anchor.canvasW; H = $anchor.canvasH; AX = [double]$anchor.anchorX; AY = [double]$anchor.anchorY }
   $box.Geom = @{ looking = $core; jump = $core; walking = $core; confetti = $core; flag = $core }
   foreach ($e in 'gym', 'horizontal-jump') {
-    $ea = Get-Content (Join-Path $Root "mascots\$e\anchor.json") -Raw | ConvertFrom-Json
+    $ea = Get-Content (Join-Path $PSScriptRoot "..\mascots\$e\anchor.json") -Raw | ConvertFrom-Json
     $box.Geom[$e] = @{ W = $ea.canvasW; H = $ea.canvasH; AX = [double]$ea.anchorX; AY = [double]$ea.anchorY }
   }
 
-  # --- Mascot choreography: look around -> jump onto the top edge -> move -> celebrate ---
-  # The look + jump onto the edge are always played; only the move and end are configurable.
+  # Mascot phases: look -> jump onto edge -> move -> celebrate. Run from Loaded because
+  # slot/card positions are known only after layout.
   $box.Move = $ev.mascot.move   # walk | jump (horizontal hop)
   $box.End  = $ev.mascot.end    # confetti | gym | flag
   Start-JumpPrep $box {

@@ -102,7 +102,7 @@ $win = $box.Win
 # NB: plain scriptblock, not .GetNewClosure() - the closure form rebinds to a module
 # scope that can't see the script-scoped phase/scene functions when this script is
 # launched via the call operator (.\show-notification.ps1) rather than -File.
-$win.Add_Loaded({ Start-CardChoreography $box $theme $ev $PSScriptRoot })
+$win.Add_Loaded({ Start-CardChoreography $box $theme $ev })
 
 # --- Click to focus the originating terminal window ---
 $win.Add_MouseLeftButtonDown({
