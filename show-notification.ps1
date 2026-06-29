@@ -21,6 +21,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 . (Join-Path $PSScriptRoot 'lib\mascot-gym.ps1')
 . (Join-Path $PSScriptRoot 'lib\mascot-confetti.ps1')
 . (Join-Path $PSScriptRoot 'lib\mascot-flag-waver.ps1')
+. (Join-Path $PSScriptRoot 'lib\scene-waves.ps1')
 . (Join-Path $PSScriptRoot 'notify-lib.ps1')
 
 # --- Resolve the target monitor ---
@@ -125,6 +126,27 @@ $win.Add_Loaded({
       }
       if ($box.Move -eq 'jump') { Start-HJump $box $celebrate } else { Start-Walk $box $celebrate }
     }
+  }
+})
+
+# --- Scenery: resolve the scene config and dispatch by kind (script scope, so the
+# renderer functions are visible; a plain scriptblock avoids the closure-rebind trap). ---
+$sceneCfg = $null
+if ($theme.scene -and (Get-Prop $theme.scene 'kind')) {
+  $sceneCols = @(Get-Prop $theme.scene 'colors')
+  if (-not $sceneCols -or $sceneCols.Count -eq 0) { $sceneCols = @(Get-StopColors $theme.gradient) }
+  $sceneCfg = @{
+    kind    = [string](Get-Prop $theme.scene 'kind')
+    colors  = $sceneCols
+    opacity = (Coalesce (Get-Prop $theme.scene 'opacity') 0.22)
+    speed   = (Coalesce (Get-Prop $theme.scene 'speed')   1.0)
+  }
+}
+$sceneKinds = @{ waves = { param($b, $c) Start-Waves $b $c } }
+$win.Add_Loaded({
+  if ($sceneCfg) {
+    $fn = $sceneKinds[$sceneCfg.kind]
+    if ($fn) { try { & $fn $box $sceneCfg } catch { Write-Warning "scene '$($sceneCfg.kind)' failed: $_" } }
   }
 })
 
