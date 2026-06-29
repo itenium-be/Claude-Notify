@@ -75,15 +75,14 @@ Set-Content -Path $marker -Value $PID
 # Flash the originating terminal (taskbar + title bar) until it gets focus.
 if ($Hwnd -ne 0) { try { [WinFocus]::Flash([IntPtr]$Hwnd) } catch {} }
 
-# Without a target window we can't auto-close on focus, so fall back to a timeout.
-if ($Hwnd -eq 0 -and $Seconds -le 0) { $Seconds = 15 }
-
-# --- Sound ---
-try {
-  if ($Sound -and (Test-Path $Sound)) { (New-Object System.Media.SoundPlayer $Sound).Play() }
-  elseif ($ev.sound -eq 'exclamation') { [System.Media.SystemSounds]::Exclamation.Play() }
-  else { [System.Media.SystemSounds]::Asterisk.Play() }
-} catch {}
+# --- Sound --- (an empty sound config means stay silent)
+if (-not [string]::IsNullOrWhiteSpace([string]$ev.sound)) {
+  try {
+    if ($Sound -and (Test-Path $Sound)) { (New-Object System.Media.SoundPlayer $Sound).Play() }
+    elseif ($ev.sound -eq 'exclamation') { [System.Media.SystemSounds]::Exclamation.Play() }
+    else { [System.Media.SystemSounds]::Asterisk.Play() }
+  } catch {}
+}
 
 # --- Build the window ---
 $box = New-NotificationBox -Event $Event -Theme $theme -Ev $ev -BodyLines $bodyLines -WorkArea $wa

@@ -38,16 +38,16 @@ Restart Claude Code (the `SessionStart` capture runs on next launch).
 From a PowerShell prompt, in the repo directory:
 
 ```powershell
-.\show-notification.ps1 -Event done          # celebration (walk + confetti)
-.\show-notification.ps1 -Event needs-input   # waiting for you (walk + flag)
+.\show-notification.ps1 -Event done -Folder Notify
+.\show-notification.ps1 -Event needs-input -Folder Notify
 ```
 
-| Switch         | Effect                                                             |
+| Switch         | Effect                                                            |
 |----------------|-------------------------------------------------------------------|
 | `-Event`       | `done` (default) or `needs-input`                                 |
 | `-Seconds <n>` | Auto-close after n seconds (default: stay until focused/clicked)  |
 | `-Folder <s>`  | Folder name shown in the card body                                |
-| `-Hwnd <n>`    | Terminal to flash + focus on click; omit and it auto-closes (15s) |
+| `-Hwnd <n>`    | Terminal to flash + auto-close once it regains focus              |
 
 Flash and auto-close on *this* terminal:
 
