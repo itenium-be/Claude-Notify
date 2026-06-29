@@ -108,7 +108,6 @@ function New-NotificationBox {
               <Grid Width="64" Height="64" Margin="14,0,0,0" VerticalAlignment="Center">$indicator</Grid>
             </StackPanel>
             <StackPanel x:Name="bodyPanel" Margin="2,10,0,0"/>
-            <TextBlock Text="click to focus" FontSize="13" Foreground="#999999" Margin="2,8,0,2"/>
           </StackPanel>
         </Grid>
       </Border>
