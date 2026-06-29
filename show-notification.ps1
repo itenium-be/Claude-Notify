@@ -30,6 +30,22 @@ if ($DryRun) {
   Write-Output ("screen={0} wa={1},{2},{3}x{4}" -f $screen.DeviceName,$wa.Left,$wa.Top,$wa.Width,$wa.Height); return
 }
 
+# --- One card per monitor: evict any predecessor still showing on this screen ---
+# Keyed by DeviceName (e.g. \\.\DISPLAY1). Guard on process name: a card that crashed
+# (e.g. the PostMessage quota crash) leaves a stale PID that may have been reused.
+$screenKey = ($screen.DeviceName -replace '[^A-Za-z0-9]', '_')
+$screenDir = Join-Path $PSScriptRoot 'screens'
+New-Item -ItemType Directory -Force -Path $screenDir | Out-Null
+$marker = Join-Path $screenDir "$screenKey.pid"
+if (Test-Path $marker) {
+  $old = (Get-Content $marker -ErrorAction SilentlyContinue | Select-Object -First 1)
+  if ($old -match '^\d+$' -and [int]$old -ne $PID) {
+    $op = Get-Process -Id ([int]$old) -ErrorAction SilentlyContinue
+    if ($op -and $op.ProcessName -in @('powershell', 'pwsh')) { Stop-Process -InputObject $op -Force -ErrorAction SilentlyContinue }
+  }
+}
+Set-Content -Path $marker -Value $PID
+
 # Flash the originating terminal (taskbar + title bar) until it gets focus.
 if ($Hwnd -ne 0) { try { [WinFocus]::Flash([IntPtr]$Hwnd) } catch {} }
 
@@ -82,3 +98,8 @@ $poll.Add_Tick({
 })
 $poll.Start()
 $win.ShowDialog() | Out-Null
+
+# Release this monitor's slot if we still own it (a successor may have overwritten it).
+if ((Test-Path $marker) -and ((Get-Content $marker -ErrorAction SilentlyContinue | Select-Object -First 1) -eq "$PID")) {
+  Remove-Item $marker -ErrorAction SilentlyContinue
+}
