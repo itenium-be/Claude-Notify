@@ -227,30 +227,6 @@ function New-CoinVisual([double]$d, [string]$tone) {
   $g
 }
 
-# A gold goblet (bowl + stem + foot) of height ~$s, for the hoard. Canvas group.
-function New-GobletVisual([double]$s) {
-  $ic = [System.Globalization.CultureInfo]::InvariantCulture
-  $n = { param($v) ([double]$v).ToString('0.##', $ic) }
-  $gold = New-Object System.Windows.Media.LinearGradientBrush
-  $gold.StartPoint = '0,0'; $gold.EndPoint = '1,0'
-  $gold.GradientStops.Add((New-SceneStopLocal '#B5781A' 0.0))
-  $gold.GradientStops.Add((New-SceneStopLocal '#FFF1C0' 0.4))
-  $gold.GradientStops.Add((New-SceneStopLocal '#D9A52E' 1.0))
-  $g = New-Object System.Windows.Controls.Canvas
-  $cup = New-Object System.Windows.Shapes.Path
-  $cup.Data = [System.Windows.Media.Geometry]::Parse("M 0 0 L $(& $n $s) 0 L $(& $n ($s*0.74)) $(& $n ($s*0.5)) L $(& $n ($s*0.26)) $(& $n ($s*0.5)) Z")
-  $cup.Fill = $gold; $g.Children.Add($cup) | Out-Null
-  $stem = New-Object System.Windows.Shapes.Rectangle
-  $stem.Width = $s * 0.12; $stem.Height = $s * 0.32; $stem.Fill = $gold
-  [System.Windows.Controls.Canvas]::SetLeft($stem, $s * 0.44); [System.Windows.Controls.Canvas]::SetTop($stem, $s * 0.5)
-  $g.Children.Add($stem) | Out-Null
-  $foot = New-Object System.Windows.Shapes.Ellipse
-  $foot.Width = $s * 0.5; $foot.Height = $s * 0.14; $foot.Fill = $gold
-  [System.Windows.Controls.Canvas]::SetLeft($foot, $s * 0.25); [System.Windows.Controls.Canvas]::SetTop($foot, $s * 0.78)
-  $g.Children.Add($foot) | Out-Null
-  $g
-}
-
 # A gold crown (zig-zag band) of width ~$s, with little gem points. Canvas group.
 function New-CrownVisual([double]$s) {
   $ic = [System.Globalization.CultureInfo]::InvariantCulture
@@ -281,7 +257,7 @@ function New-SceneStopLocal([string]$hex, [double]$offset) {
 
 # A dragon's hoard along the bottom: a soft gold halo, a solid gold bed (so no card
 # shows through), densely tiled coins in mixed gold tones/sizes, a fire-lit rim along
-# the crest, a goblet + crown poking up, coloured gems, cross-flare glints and a slow
+# the crest, a crown poking up, coloured gems, cross-flare glints and a slow
 # shimmer sweep. Only the glints + shimmer animate (transform-driven, the reliable path).
 function Add-DragonTreasure($canvas, [double]$w, [double]$h, [double]$speed) {
   $pileH = $h * 0.12
@@ -338,10 +314,7 @@ function Add-DragonTreasure($canvas, [double]$w, [double]$h, [double]$speed) {
   [System.Windows.Controls.Canvas]::SetLeft($rim, 0); [System.Windows.Controls.Canvas]::SetTop($rim, $pileTop - 3)
   $canvas.Children.Add($rim) | Out-Null
 
-  # A goblet and a crown poking up out of the hoard.
-  $goblet = New-GobletVisual ($pileH * 1.5)
-  [System.Windows.Controls.Canvas]::SetLeft($goblet, $w * 0.30); [System.Windows.Controls.Canvas]::SetTop($goblet, $pileTop - $pileH * 1.2)
-  $canvas.Children.Add($goblet) | Out-Null
+  # A crown poking up out of the hoard.
   $crown = New-CrownVisual ($pileH * 1.6)
   [System.Windows.Controls.Canvas]::SetLeft($crown, $w * 0.62); [System.Windows.Controls.Canvas]::SetTop($crown, $pileTop - $pileH * 0.9)
   $canvas.Children.Add($crown) | Out-Null
