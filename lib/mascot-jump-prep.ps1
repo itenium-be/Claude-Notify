@@ -21,5 +21,5 @@ function Start-JumpPrep {
   $Box.FxRight = $cardRight - ($slotCx - $cardLeft)       # right end mirrors the slot inset
 
   Set-MascotClip $Box 'looking' $Box.FxLeft $Box.FyRest | Out-Null
-  Start-Flipbook -Image $Box.Mascot -Dir (Join-Path $PSScriptRoot '..\mascots\looking') -OnDone $OnDone
+  Start-Flipbook -Image $Box.Mascot -Dir (Join-Path $PSScriptRoot '..\mascots\looking') -OnDone $OnDone -Box $Box
 }

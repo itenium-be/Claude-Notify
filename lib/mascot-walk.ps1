@@ -9,7 +9,7 @@ function Start-Walk {
   [System.Windows.Controls.Canvas]::SetLeft($m, $startLeft)
   $dur = [System.Windows.Duration][TimeSpan]::FromMilliseconds(1600)
   $move = New-Object System.Windows.Media.Animation.DoubleAnimation $startLeft, $endLeft, $dur
-  $walk = Start-Flipbook -Image $m -Dir (Join-Path $PSScriptRoot '..\mascots\walking') -Loop
+  $walk = Start-Flipbook -Image $m -Dir (Join-Path $PSScriptRoot '..\mascots\walking') -Loop -Box $Box
   $move.Add_Completed({
     if ($walk) { $walk.Stop() }
     $m.BeginAnimation([System.Windows.Controls.Canvas]::LeftProperty, $null)

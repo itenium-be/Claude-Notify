@@ -2,5 +2,5 @@
 function Start-Gym {
   param([hashtable]$Box)
   Set-MascotClip $Box 'gym' $Box.FxRight $Box.FyLand | Out-Null
-  Start-Flipbook -Image $Box.Mascot -Dir (Join-Path $PSScriptRoot '..\mascots\gym') -Loop
+  Start-Flipbook -Image $Box.Mascot -Dir (Join-Path $PSScriptRoot '..\mascots\gym') -Loop -Box $Box
 }

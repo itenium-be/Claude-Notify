@@ -7,7 +7,8 @@ function Start-Flipbook {
     [string]$Dir,
     [int]$Fps = 30,
     [switch]$Loop,
-    [scriptblock]$OnDone
+    [scriptblock]$OnDone,
+    [hashtable]$Box   # when given, the timer is tracked on $Box.Anims so the card can be torn down
   )
   $files = @(Get-ChildItem -Path $Dir -Filter 'frame_*.png' -ErrorAction SilentlyContinue | Sort-Object Name)
   if ($files.Count -eq 0) { if ($OnDone) { & $OnDone }; return }
@@ -31,6 +32,20 @@ function Start-Flipbook {
     }
     $Image.Source = $frames[$state.Idx]
   }.GetNewClosure())
+  if ($Box) {
+    if (-not $Box.Anims) { $Box.Anims = New-Object System.Collections.Generic.List[object] }
+    [void]$Box.Anims.Add($timer)
+  }
   $timer.Start()
   return $timer
+}
+
+# Stop a card's mascot frame-timers. The looping celebrate/walk flipbooks tick forever, so a
+# card that's been replaced (the editor rebuilds one per edit) would otherwise keep updating
+# its now-offscreen mascot on the shared Dispatcher — several at once visibly jank the live one.
+function Stop-CardAnimations($Box) {
+  if ($Box -and $Box.Anims) {
+    foreach ($t in $Box.Anims) { try { $t.Stop() } catch {} }
+    $Box.Anims.Clear()
+  }
 }

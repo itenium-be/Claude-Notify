@@ -21,6 +21,7 @@ function Start-CardChoreography($box, $theme, $ev) {
   # slot/card positions are known only after layout.
   $box.Move = $ev.mascot.move   # walk | jump (horizontal hop)
   $box.End  = $ev.mascot.end    # confetti | gym | flag
+  $box.Anims = New-Object System.Collections.Generic.List[object]   # flipbook timers, for teardown
   Start-JumpPrep $box {
     Start-Jump $box {
       $celebrate = {
