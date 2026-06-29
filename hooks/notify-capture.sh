@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # SessionStart hook: record the HWND of the terminal that launched this session.
 set -uo pipefail
+# PLUGIN_ROOT holds the scripts; YOINK_DIR holds user state. Fallback covers dev/manual runs.
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 YOINK_DIR="${YOINK_DIR:-$HOME/.claude/yoink}"
 SESS_DIR="$YOINK_DIR/sessions"
 mkdir -p "$SESS_DIR"
@@ -10,7 +12,7 @@ SID="$(jq -r '.session_id // empty' <<<"$INPUT" 2>/dev/null)"
 CWD="$(jq -r '.cwd // empty' <<<"$INPUT" 2>/dev/null)"
 [[ -z "$SID" ]] && exit 0
 
-PS_SCRIPT="${YOINK_PS_CAPTURE:-$(wslpath -w "$YOINK_DIR/capture-window.ps1" 2>/dev/null)}"
+PS_SCRIPT="${YOINK_PS_CAPTURE:-$(wslpath -w "$PLUGIN_ROOT/capture-window.ps1" 2>/dev/null)}"
 OUT="$(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PS_SCRIPT" 2>/dev/null | tr -d '\r')"
 HWND="${OUT%% *}"
 PROC="${OUT#* }"
