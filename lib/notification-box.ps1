@@ -35,6 +35,7 @@ function New-NotificationBox {
     [hashtable]$Theme,
     [hashtable]$Ev,
     [object[]]$BodyLines = @(),
+    [object[]]$Footer = @(),
     [System.Drawing.Rectangle]$WorkArea,
     [switch]$EmitXaml
   )
@@ -111,7 +112,8 @@ function New-NotificationBox {
               <TextBlock x:Name="status" FontSize="34" FontWeight="Bold" Margin="16,0,0,0" VerticalAlignment="Center"/>
               $indicatorBlock
             </StackPanel>
-            <StackPanel x:Name="bodyPanel" Margin="2,10,0,0"/>
+            <StackPanel x:Name="bodyPanel" Margin="2,-5,0,0"/>
+            <WrapPanel x:Name="footerPanel" Orientation="Horizontal" Margin="2,4,0,0"/>
           </StackPanel>
         </Grid>
       </Border>
@@ -145,6 +147,23 @@ function New-NotificationBox {
       default    { $tb.FontSize = 19; $tb.Foreground = (New-Brush '#FFFFFF'); $tb.Margin = (New-Object System.Windows.Thickness 0,4,0,0) }
     }
     $bodyPanel.Children.Add($tb) | Out-Null
+  }
+
+  # Footer badges: rounded pills. Empty color/background fall back to defaults; an invalid
+  # hex also falls back (so a typo can't crash the card).
+  $footerPanel = $win.FindName('footerPanel')
+  foreach ($b in $Footer) {
+    $fg = if ([string]$b.color      -match '^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$') { [string]$b.color }      else { '#E5E5E5' }
+    $bg = if ([string]$b.background -match '^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$') { [string]$b.background } else { '#2A2A33' }
+    $pill = New-Object System.Windows.Controls.Border
+    $pill.CornerRadius = New-Object System.Windows.CornerRadius 9
+    $pill.Background   = New-Brush $bg
+    $pill.Padding      = New-Object System.Windows.Thickness 9, 3, 9, 3
+    $pill.Margin       = New-Object System.Windows.Thickness 0, 0, 8, 0
+    $bt = New-Object System.Windows.Controls.TextBlock
+    $bt.Text = [string]$b.text; $bt.FontSize = 13; $bt.Foreground = (New-Brush $fg)
+    $pill.Child = $bt
+    $footerPanel.Children.Add($pill) | Out-Null
   }
 
   $win.Add_Loaded({

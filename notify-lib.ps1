@@ -20,9 +20,9 @@ function Get-NotifyDefaults {
     activeTheme = 'unicorn'
     events = @{
       'needs-input' = @{ label='Needs you'; accent='#FF7A18'; indicator='👋'; mascot=@{ move='walk'; end='flag' }; sound='exclamation';
-        body=@(@{ text='{{folder}}'; style='sub' }) }
+        body=@(@{ text='{{folder}}'; style='sub' }); footer=@() }
       'done' = @{ label='Done!'; accent='#22C55E'; indicator='fireworks'; mascot=@{ move='walk'; end='confetti' }; sound='asterisk';
-        body=@(@{ text='{{folder}}'; style='sub' }) }
+        body=@(@{ text='{{folder}}'; style='sub' }); footer=@() }
     }
     themes = @{
       unicorn = @{
@@ -96,6 +96,7 @@ function Resolve-Event($cfg, [string]$event) {
   # MISSING key (null) falls back to the default. (Coalesce can't tell "" from absent.)
   $ind = Get-Prop $e 'indicator'; if ($null -eq $ind) { $ind = $def.indicator }
   $snd = Get-Prop $e 'sound';     if ($null -eq $snd) { $snd = $def.sound }
+  $ftr = Get-Prop $e 'footer';    if ($null -eq $ftr) { $ftr = $def.footer }
   @{
     label     = (Coalesce (Get-Prop $e 'label')     $def.label)
     accent    = (Coalesce (Get-Prop $e 'accent')    $def.accent)
@@ -106,6 +107,7 @@ function Resolve-Event($cfg, [string]$event) {
     }
     sound     = [string]$snd
     body      = @(Coalesce (Get-Prop $e 'body')      $def.body)
+    footer    = @($ftr)
   }
 }
 
@@ -117,32 +119,48 @@ function Get-StopColors([string[]]$stops) {
   }
 }
 
-# Body templates + context -> cleaned, styled lines.
-# Rules: a line whose tokens ALL resolve empty is dropped whole; otherwise dangling
-# separator chars are trimmed; empty results are dropped; pure-literal lines are kept.
-function Resolve-BodyLines($body, [hashtable]$ctx) {
+# Expand {{tokens}} in $tpl against $ctx. Returns the cleaned string, or $null when the
+# template HAS tokens that ALL resolve empty (caller drops it). Dangling separator chars
+# are trimmed; a pure-literal template is always kept.
+function Expand-Template([string]$tpl, [hashtable]$ctx) {
   $rx = [regex]'\{\{(\w+)\}\}'
   $sep = " `t·-|/".ToCharArray()
+  $names = @($rx.Matches($tpl) | ForEach-Object { $_.Groups[1].Value })
+  $vals = @{}; $anyVal = $false
+  foreach ($n in $names) {
+    $v = ''
+    if ($ctx.ContainsKey($n)) { $v = [string]$ctx[$n] }
+    $vals[$n] = $v
+    if ($v -ne '') { $anyVal = $true }
+  }
+  if ($names.Count -ge 1 -and -not $anyVal) { return $null }
+  $text = $rx.Replace($tpl, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $vals[$m.Groups[1].Value] })
+  $text = ($text -replace '\s+', ' ').Trim().Trim($sep).Trim()
+  if ($text -eq '') { return $null }
+  return $text
+}
+
+# Body templates + context -> cleaned, styled lines (a dropped template is skipped).
+function Resolve-BodyLines($body, [hashtable]$ctx) {
   $out = @()
   foreach ($line in $body) {
-    $tpl   = [string](Get-Prop $line 'text')
+    $text = Expand-Template ([string](Get-Prop $line 'text')) $ctx
+    if ($null -eq $text) { continue }
     $style = [string](Get-Prop $line 'style')
     if (@('headline','sub','muted') -notcontains $style) { $style = 'sub' }
-
-    $names = @($rx.Matches($tpl) | ForEach-Object { $_.Groups[1].Value })
-    $vals = @{}; $anyVal = $false
-    foreach ($n in $names) {
-      $v = ''
-      if ($ctx.ContainsKey($n)) { $v = [string]$ctx[$n] }
-      $vals[$n] = $v
-      if ($v -ne '') { $anyVal = $true }
-    }
-    if ($names.Count -ge 1 -and -not $anyVal) { continue }
-
-    $text = $rx.Replace($tpl, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $vals[$m.Groups[1].Value] })
-    $text = ($text -replace '\s+', ' ').Trim().Trim($sep).Trim()
-    if ($text -eq '') { continue }
     $out += @{ text = $text; style = $style }
+  }
+  $out
+}
+
+# Footer badge templates + context -> cleaned badges. A badge whose tokens all resolve
+# empty is dropped; color/background pass through verbatim ("" -> renderer default).
+function Resolve-Footer($footer, [hashtable]$ctx) {
+  $out = @()
+  foreach ($b in $footer) {
+    $text = Expand-Template ([string](Get-Prop $b 'badge')) $ctx
+    if ($null -eq $text) { continue }
+    $out += @{ text = $text; color = [string](Get-Prop $b 'color'); background = [string](Get-Prop $b 'background') }
   }
   $out
 }

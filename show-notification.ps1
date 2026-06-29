@@ -50,10 +50,11 @@ if ($Context -and (Test-Path $Context)) {
   } catch {}
 }
 $bodyLines = @(Resolve-BodyLines $ev.body $ctx)
+$footer    = @(Resolve-Footer $ev.footer $ctx)
 if ($EmitXaml) {
   # Emoji come from settings.json as UTF8; force UTF8 stdout so they survive the pipe.
   [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-  New-NotificationBox -Event $Event -Theme $theme -Ev $ev -BodyLines $bodyLines -WorkArea $wa -EmitXaml; return
+  New-NotificationBox -Event $Event -Theme $theme -Ev $ev -BodyLines $bodyLines -Footer $footer -WorkArea $wa -EmitXaml; return
 }
 
 # --- One card per monitor: evict any predecessor still showing on this screen ---
@@ -88,7 +89,7 @@ if (-not [string]::IsNullOrWhiteSpace([string]$ev.sound)) {
 }
 
 # --- Build the window ---
-$box = New-NotificationBox -Event $Event -Theme $theme -Ev $ev -BodyLines $bodyLines -WorkArea $wa
+$box = New-NotificationBox -Event $Event -Theme $theme -Ev $ev -BodyLines $bodyLines -Footer $footer -WorkArea $wa
 $win = $box.Win
 
 # Normalized frames share one canvas; the creature sits at a fixed anchor inside it

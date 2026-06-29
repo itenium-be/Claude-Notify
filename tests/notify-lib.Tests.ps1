@@ -128,4 +128,18 @@ $cfgPartialMascot = [pscustomobject]@{ events = [pscustomobject]@{ 'needs-input'
 Assert-Eq (Resolve-Event $cfgPartialMascot 'needs-input').mascot.move 'jump' "explicit move honored"
 Assert-Eq (Resolve-Event $cfgPartialMascot 'needs-input').mascot.end 'flag' "missing end falls back to default (needs-input)"
 
+# --- Resolve-Footer: token expand, drop all-empty, pass through color/background ---
+$fctx = @{ branch='main'; agents='2' }
+$badges = @(Resolve-Footer @(
+  @{ badge='{{branch}}'; color='#FFFFFF'; background='' },
+  @{ badge='{{agents}} 🤖'; color=''; background='' }
+) $fctx)
+Assert-Eq $badges.Count 2 "both badges resolved"
+Assert-Eq $badges[0].text 'main' "branch badge text"
+Assert-Eq $badges[0].color '#FFFFFF' "badge color passed through"
+Assert-Eq $badges[1].text '2 🤖' "agents badge text"
+# agents empty -> the {{agents}} 🤖 badge drops (all its tokens empty)
+$badges2 = @(Resolve-Footer @(@{ badge='{{agents}} 🤖' }) @{ agents='' })
+Assert-Eq $badges2.Count 0 "badge with all-empty tokens dropped"
+
 if ($script:fail -gt 0) { exit 1 } else { Write-Host "ALL PASS" }

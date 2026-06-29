@@ -74,6 +74,11 @@
           "type": "array",
           "description": "Card body, one entry per line. A line whose tokens all resolve empty is dropped.",
           "items": { "$ref": "#/definitions/bodyLine" }
+        },
+        "footer": {
+          "type": "array",
+          "description": "Badges shown in a row below the body. A badge whose tokens all resolve empty is dropped.",
+          "items": { "$ref": "#/definitions/badge" }
         }
       }
     },
@@ -90,6 +95,28 @@
         "style": {
           "enum": ["headline", "sub", "muted"],
           "description": "headline = large white; sub = medium white; muted = small grey."
+        }
+      }
+    },
+    "badge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["badge"],
+      "properties": {
+        "badge": {
+          "type": "string",
+          "description": "Badge text. Supports {{token}} replacements; dropped if all its tokens resolve empty.",
+          "markdownDescription": "Badge text. Supports `{{token}}` replacements (same set as body lines). Dropped if all its tokens resolve empty."
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^(#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?)?$",
+          "description": "Text colour #RRGGBB(AA). Empty = default."
+        },
+        "background": {
+          "type": "string",
+          "pattern": "^(#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?)?$",
+          "description": "Pill background #RRGGBB(AA). Empty = default."
         }
       }
     },

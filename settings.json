@@ -1,20 +1,26 @@
 {
-  "activeTheme": "unicorn",
+  "activeTheme": "ocean",
   "events": {
     "needs-input": {
       "label": "Needs you", "accent": "#FF7A18", "indicator": "", "mascot": { "move": "walk", "end": "flag" }, "sound": "",
       "body": [
-        { "text": "{{message}}",            "style": "headline" },
-        { "text": "{{folder}} · {{branch}}", "style": "sub" },
-        { "text": "{{last_prompt}}",         "style": "muted" }
+        { "text": "{{message}}", "style": "headline" },
+        { "text": "{{folder}}",  "style": "sub" }
+      ],
+      "footer": [
+        { "badge": "{{branch}}",    "color": "#FFFFFF", "background": "" },
+        { "badge": "{{agents}} 🤖", "color": "",        "background": "" }
       ]
     },
     "done": {
       "label": "Done!", "accent": "#22C55E", "indicator": "", "mascot": { "move": "walk", "end": "confetti" }, "sound": "",
       "body": [
-        { "text": "{{last_assistant}}",       "style": "headline" },
-        { "text": "{{folder}} · {{branch}}",   "style": "sub" },
-        { "text": "{{agents}} agents running", "style": "muted" }
+        { "text": "{{last_assistant}}", "style": "headline" },
+        { "text": "{{folder}}",         "style": "sub" }
+      ],
+      "footer": [
+        { "badge": "{{branch}}",    "color": "#FFFFFF", "background": "" },
+        { "badge": "{{agents}} 🤖", "color": "",        "background": "" }
       ]
     }
   },
