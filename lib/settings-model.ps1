@@ -61,3 +61,60 @@ function ConvertTo-ModelValue([string]$Kind, $Raw) {
     default    { return [string]$Raw }
   }
 }
+
+# Read the enum option lists the editor needs from settings.schema.json.
+function Get-SchemaEnums([string]$SchemaPath) {
+  $schema = ConvertTo-HashtableDeep ((Remove-JsonComments (Get-Content -Raw -Encoding UTF8 $SchemaPath)) | ConvertFrom-Json)
+  @{
+    'mascot.move'  = @(Get-ModelValue $schema @('definitions','event','properties','mascot','properties','move','enum'))
+    'mascot.end'   = @(Get-ModelValue $schema @('definitions','event','properties','mascot','properties','end','enum'))
+    'sound'        = @(Get-ModelValue $schema @('definitions','event','properties','sound','enum'))
+    'scene.glyphs' = @(Get-ModelValue $schema @('definitions','scene','properties','glyphs','enum'))
+  }
+}
+
+# Ordered list of form-field descriptors for the selected event + theme.
+# Each: @{ path=[string[]]; label=string; kind='text'|'dropdown'|'checkbox'|'number'; options=[string[]] }
+function Get-EditorFields($model, $enums, [string]$Event, [string]$Theme) {
+  $fields = New-Object System.Collections.Generic.List[object]
+  function script:Add-Field($list, $path, $label, $kind, $opts) {
+    $list.Add(@{ path = @($path); label = $label; kind = $kind; options = @($opts) }) | Out-Null
+  }
+
+  $themeNames = @((Get-ModelValue $model @('themes')).Keys)
+  Add-Field $fields @('activeTheme') 'activeTheme' 'dropdown' ($themeNames + 'random')
+
+  $ep = @('events', $Event)
+  Add-Field $fields ($ep + 'label')               'label'       'text'     @()
+  Add-Field $fields ($ep + 'accent')              'accent'      'text'     @()
+  Add-Field $fields ($ep + 'indicator')           'indicator'   'text'     @()
+  Add-Field $fields ($ep + @('mascot','move'))    'mascot.move' 'dropdown' $enums['mascot.move']
+  Add-Field $fields ($ep + @('mascot','end'))     'mascot.end'  'dropdown' $enums['mascot.end']
+  Add-Field $fields ($ep + 'sound')               'sound'       'dropdown' $enums['sound']
+
+  $tp = @('themes', $Theme)
+  Add-Field $fields ($tp + 'hero') 'hero' 'text' @()
+  Add-Field $fields ($tp + 'card') 'card' 'text' @()
+
+  $scene = Get-ModelValue $model ($tp + 'scene')
+  if ($scene -is [System.Collections.IDictionary]) {
+    foreach ($k in @($scene.Keys)) {
+      if ($k -eq 'kind' -or $k -eq 'colors') { continue }   # readonly / array (deferred)
+      $sp = $tp + @('scene', $k)
+      if ($k -eq 'glyphs')           { Add-Field $fields $sp "scene.$k" 'dropdown' $enums['scene.glyphs'] }
+      elseif ($scene[$k] -is [bool]) { Add-Field $fields $sp "scene.$k" 'checkbox' @() }
+      else                           { Add-Field $fields $sp "scene.$k" 'number' @() }
+    }
+  }
+  $fields
+}
+
+# Fixed sample values for {{token}} expansion in the preview (no live session needed).
+function Get-SampleContext {
+  @{
+    folder = 'my-project'; cwd = '/home/wouter/code/my-project'; repo = 'my-project'
+    branch = 'main'; dirty = '●'; message = 'Waiting for your input'
+    last_prompt = 'add a dark mode toggle'; last_assistant = 'Done — all tests pass'
+    model = 'claude-sonnet'; agents = '2'; pending_tool = 'Edit'; permission_mode = 'default'; event = 'done'
+  }
+}

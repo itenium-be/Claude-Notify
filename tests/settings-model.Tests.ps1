@@ -43,4 +43,38 @@ try {
   [System.Threading.Thread]::CurrentThread.CurrentCulture = $prev
 }
 
+# --- Get-SchemaEnums (reads the real schema) ---
+$enums = Get-SchemaEnums "$PSScriptRoot\..\settings.schema.json"
+Assert-Eq ($enums['mascot.move'] -join ',') 'walk,jump' "schema mascot.move enum"
+Assert-Eq ($enums['mascot.end'] -join ',')  'confetti,gym,flag' "schema mascot.end enum"
+Assert-Eq ($enums['scene.glyphs'] -join ',') 'katakana,latin,digits,binary,mixed' "schema glyphs enum"
+
+# --- Get-EditorFields ---
+$model = [ordered]@{
+  activeTheme = 'sakura'
+  events = [ordered]@{ done = [ordered]@{ label='Done!'; mascot=[ordered]@{ move='walk'; end='confetti' } } }
+  themes = [ordered]@{
+    sakura = [ordered]@{ hero='🌸'; card='#1A1620'; scene=[ordered]@{ kind='sakura'; petals=$true; count=22; glyphs='katakana' } }
+    dragon = [ordered]@{ hero='🐉'; card='#1A0F0A' }
+  }
+}
+$fields = Get-EditorFields $model $enums 'done' 'sakura'
+$byLabel = @{}; foreach ($f in $fields) { $byLabel[$f.label] = $f }
+Assert-Eq ($byLabel['activeTheme'].options -join ',') 'sakura,dragon,random' "activeTheme options = themes + random"
+Assert-Eq $byLabel['activeTheme'].kind 'dropdown' "activeTheme is dropdown"
+Assert-Eq ($byLabel['label'].path -join '.') 'events.done.label' "event label path"
+Assert-Eq ($byLabel['mascot.move'].path -join '.') 'events.done.mascot.move' "mascot.move path"
+Assert-Eq $byLabel['mascot.move'].kind 'dropdown' "mascot.move dropdown"
+Assert-Eq ($byLabel['hero'].path -join '.') 'themes.sakura.hero' "theme hero path"
+Assert-Eq $byLabel['scene.petals'].kind 'checkbox' "scene bool -> checkbox"
+Assert-Eq $byLabel['scene.count'].kind 'number' "scene number -> number"
+Assert-Eq $byLabel['scene.glyphs'].kind 'dropdown' "scene glyphs -> dropdown"
+Assert-Eq ($fields | Where-Object { $_.label -eq 'scene.kind' }).Count 0 "scene.kind not exposed"
+
+# --- Sample context resolves body/footer non-empty ---
+$ctx = Get-SampleContext
+$lines = @(Resolve-BodyLines @(@{ text='{{folder}}'; style='sub' }) $ctx)
+Assert-Eq $lines.Count 1 "sample context resolves folder line"
+Assert-Eq $lines[0].text 'my-project' "sample folder value"
+
 if ($script:fail -gt 0) { exit 1 } else { Write-Host "ALL PASS" }
