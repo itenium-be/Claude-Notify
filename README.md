@@ -1,4 +1,4 @@
-# claude-notify
+# Yoink
 
 Themed Windows (WSL) Claude notification hooks, whatever theme you fancy, be it 🦄, 🌸, 🐉
 or The Matrix, we've got you covered. Fully configurable.
@@ -6,18 +6,18 @@ or The Matrix, we've got you covered. Fully configurable.
 
 ## Wire up
 
-Point `~/.claude/settings.json` at this repo's hook scripts. If this repo lives at `~/.claude/notify`:
+Point `~/.claude/settings.json` at this repo's hook scripts. If this repo lives at `~/.claude/yoink`:
 
 ```jsonc
 "hooks": {
   "SessionStart": [
-    { "hooks": [ { "type": "command", "command": "bash ~/.claude/notify/hooks/notify-capture.sh" } ] }
+    { "hooks": [ { "type": "command", "command": "bash ~/.claude/yoink/hooks/notify-capture.sh" } ] }
   ],
   "Stop": [
-    { "hooks": [ { "type": "command", "command": "bash ~/.claude/notify/hooks/notify-fire.sh done" } ] }
+    { "hooks": [ { "type": "command", "command": "bash ~/.claude/yoink/hooks/notify-fire.sh done" } ] }
   ],
   "Notification": [
-    { "hooks": [ { "type": "command", "command": "bash ~/.claude/notify/hooks/notify-fire.sh needs-input" } ] }
+    { "hooks": [ { "type": "command", "command": "bash ~/.claude/yoink/hooks/notify-fire.sh needs-input" } ] }
   ]
 }
 ```

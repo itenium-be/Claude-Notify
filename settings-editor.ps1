@@ -57,7 +57,7 @@ $script:ctx = Get-SampleContext
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="claude-notify settings" Width="680" Height="900" Background="#15151A">
+        Title="Yoink settings" Width="680" Height="900" Background="#15151A">
   <DockPanel>
     <DockPanel DockPanel.Dock="Top" LastChildFill="False" Margin="10,8">
       <Button x:Name="save" Content="Save" Width="90" Height="28" DockPanel.Dock="Right" Margin="6,0,0,0"/>
