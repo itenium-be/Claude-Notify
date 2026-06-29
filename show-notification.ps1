@@ -4,6 +4,7 @@ param(
   [string]$Event = "done",
   [int]$Seconds = 0,   # 0 = stay until clicked or the target terminal is focused
   [string]$Context = "",
+  [string]$SettingsDir = "",   # user dir; its settings.json + sounds win over bundled defaults
   [switch]$DryRun,
   [switch]$EmitXaml
 )
@@ -48,7 +49,7 @@ if ($DryRun) {
 }
 
 # --- Resolve themed config (theme + event + body) ---
-$cfg   = Get-NotifyConfig $PSScriptRoot
+$cfg   = Get-NotifyConfig $PSScriptRoot $SettingsDir
 $theme = Resolve-Theme $cfg (Resolve-ThemeName $cfg)
 $ev    = Resolve-Event $cfg $Event
 $ctx   = @{ folder = $Folder; event = $Event }
@@ -78,6 +79,10 @@ if ([bool]$ev.sound -and (-not $terminalActive -or (Get-PlaySoundWhenTerminalAct
   $sndFile = if ($theme.sound) { [string](Get-Prop $theme.sound $Event) } else { '' }
   if ($sndFile) {
     $sndPath = Join-Path $PSScriptRoot "sounds\$sndFile"
+    if ($SettingsDir) {
+      $userSnd = Join-Path $SettingsDir "sounds\$sndFile"
+      if (Test-Path $userSnd) { $sndPath = $userSnd }   # user override survives plugin updates
+    }
     if (Test-Path $sndPath) { try { (New-Object System.Media.SoundPlayer $sndPath).Play() } catch {} }
   }
 }

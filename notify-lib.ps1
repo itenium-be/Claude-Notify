@@ -92,14 +92,19 @@ function Remove-JsonComments([string]$text) {
   $sb.ToString()
 }
 
-# Load settings.json from $Dir if present; otherwise return built-in defaults. Never throws.
-function Get-NotifyConfig([string]$Dir) {
-  $path = Join-Path $Dir 'settings.json'
-  if (Test-Path $path) {
-    try {
-      return (Remove-JsonComments (Get-Content -Raw -Encoding UTF8 $path) | ConvertFrom-Json)
-    } catch {
-      Write-Warning "notify: failed to parse settings.json: $($_.Exception.Message)"
+# Load settings.json, preferring the user dir over the bundled default, else built-in
+# defaults. $UserDir survives plugin updates; $Dir is the (replaceable) install dir.
+# Never throws.
+function Get-NotifyConfig([string]$Dir, [string]$UserDir = "") {
+  foreach ($d in @($UserDir, $Dir)) {
+    if (-not $d) { continue }
+    $path = Join-Path $d 'settings.json'
+    if (Test-Path $path) {
+      try {
+        return (Remove-JsonComments (Get-Content -Raw -Encoding UTF8 $path) | ConvertFrom-Json)
+      } catch {
+        Write-Warning "notify: failed to parse settings.json ($path): $($_.Exception.Message)"
+      }
     }
   }
   return Get-NotifyDefaults
