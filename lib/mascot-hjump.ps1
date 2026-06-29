@@ -13,7 +13,7 @@ function Start-HJump {
   $dur = [System.Windows.Duration][TimeSpan]::FromMilliseconds([int]($n / $fps * 1000))
   $move = New-Object System.Windows.Media.Animation.DoubleAnimation $startLeft, $endLeft, $dur
   $m.BeginAnimation([System.Windows.Controls.Canvas]::LeftProperty, $move)
-  Start-Flipbook -Image $m -Dir (Join-Path $PSScriptRoot '..\mascots\horizontal-jump') -Fps $fps -OnDone {
+  Start-Flipbook -Image $m -Dir (Join-Path $PSScriptRoot '..\mascots\horizontal-jump') -Fps $fps -Box $Box -OnDone {
     $m.BeginAnimation([System.Windows.Controls.Canvas]::LeftProperty, $null)
     [System.Windows.Controls.Canvas]::SetLeft($m, $endLeft)
     if ($OnDone) { & $OnDone }

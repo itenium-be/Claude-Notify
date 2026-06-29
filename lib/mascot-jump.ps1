@@ -18,7 +18,7 @@ function Start-Jump {
   $ease.EasingMode = [System.Windows.Media.Animation.EasingMode]::EaseOut
   $up.EasingFunction = $ease
   $m.BeginAnimation([System.Windows.Controls.Canvas]::TopProperty, $up)
-  Start-Flipbook -Image $m -Dir (Join-Path $PSScriptRoot '..\mascots\jump') -Fps $fps -OnDone {
+  Start-Flipbook -Image $m -Dir (Join-Path $PSScriptRoot '..\mascots\jump') -Fps $fps -Box $Box -OnDone {
     # Pin the final position so the next phase starts from the edge.
     $m.BeginAnimation([System.Windows.Controls.Canvas]::TopProperty, $null)
     [System.Windows.Controls.Canvas]::SetTop($m, $landTop)
