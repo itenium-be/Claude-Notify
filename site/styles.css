@@ -76,7 +76,9 @@ main { max-width: 1120px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 48px); }
 
 .pick-title { font-size: clamp(20px, 3vw, 28px); margin: clamp(24px, 5vw, 48px) 0 18px; }
 .hero-grid { display: grid; grid-template-columns: max-content 1fr; gap: clamp(24px, 4vw, 48px); align-items: center; }
-.hero-copy h1 { font-size: clamp(30px, 5.4vw, 56px); margin: 0 0 18px; }
+.hero-intro { display: grid; grid-template-columns: 1fr minmax(0, 460px); gap: clamp(24px, 4vw, 48px); align-items: center; }
+.hero-box { width: 100%; height: auto; border-radius: 14px; box-shadow: 0 24px 60px -28px #000; }
+.hero-title { font-size: clamp(30px, 5.4vw, 56px); margin: 0 0 24px; }
 /* hand-drawn marker underline: SVG masks the accent fill, so it recolours per theme */
 .scribble { position: relative; white-space: nowrap; }
 .scribble::after {
@@ -179,6 +181,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 48px); }
 .install li {
   position: relative; counter-increment: step; padding: 22px 22px 22px 64px;
   background: rgba(255,255,255,.04); border: 1px solid var(--hair); border-radius: 16px;
+  min-width: 0;   /* grid item: allow shrink below content so .code pre can scroll, not overflow */
 }
 .install li::before {
   content: counter(step); position: absolute; left: 20px; top: 22px;
@@ -208,12 +211,21 @@ code { font-family: ui-monospace, monospace; }
 
 @media (max-width: 880px) {
   .hero-grid { grid-template-columns: 1fr; }
+  .hero-intro { grid-template-columns: 1fr; }
   .theme-row { display: grid; grid-template-columns: 1fr 1fr; }
   .steps, .feature-grid, .theme-gallery, .media-row { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 560px) {
   .topbar nav a:not(.ghb) { display: none; }
   .steps, .feature-grid, .theme-gallery, .media-row { grid-template-columns: 1fr; }
+  /* claw back horizontal room for the code blocks on narrow screens */
+  main { padding: 0 10px; }
+  .install li { padding: 14px 10px 14px 42px; }
+  .install li::before { left: 8px; top: 14px; width: 26px; height: 26px; }
+  /* code box clears the number's left padding (badge only sits up top) */
+  .install .code { margin-left: -30px; }
+  .code pre { padding: 12px 12px; font-size: 12px; }
+  .code .copy { padding: 5px 9px; }
 }
 @media (prefers-reduced-motion: reduce) {
   #scene { display: none; }

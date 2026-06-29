@@ -65,12 +65,14 @@ function applyTheme(key) {
     p.setAttribute('aria-pressed', String(p.dataset.theme === key)));
   // notif card replaced by a per-theme video demo; swap the source to match the pill.
   // filenames mostly mirror the theme key — 'vaporwave' is the lone exception (yoink-vaporware.mp4).
+  const file = key === 'vaporwave' ? 'vaporware' : key;
   const video = document.getElementById('heroVideo');
   if (video) {
-    const file = key === 'vaporwave' ? 'vaporware' : key;
     video.src = `assets/yoink-${file}.mp4`;
     video.load();
   }
+  const box = document.getElementById('boxImg');
+  if (box) box.src = `assets/boxes/${file}.png`;
 
   startScene(t);
 }
@@ -174,19 +176,29 @@ function makeScene(canvas, theme) {
 
   function drawGrid(time) {
     const cx = w / 2, horizon = h * 0.46;
-    ctx.strokeStyle = theme.gradient[0]; ctx.lineWidth = 1.2 * devicePixelRatio;
-    ctx.globalAlpha = 0.5;
+    // classic synthwave neon (Kung Fury): hot magenta + cyan, glowing
+    const neonA = '#FF2A6D', neonB = '#05D9E8';
+    ctx.save();
+    ctx.lineWidth = 1.6 * devicePixelRatio;
+    ctx.shadowBlur = 12 * devicePixelRatio;
+
+    ctx.strokeStyle = neonB; ctx.shadowColor = neonB; ctx.globalAlpha = 0.7;
     for (let i = -10; i <= 10; i++) {
-      ctx.beginPath(); ctx.moveTo(cx + i * 30 * devicePixelRatio, horizon);
-      ctx.lineTo(cx + i * 220 * devicePixelRatio, h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + i * 26 * devicePixelRatio, horizon);
+      ctx.lineTo(cx + i * 240 * devicePixelRatio, h); ctx.stroke();
     }
-    const speed = (time * 60 * devicePixelRatio) % 40;
-    for (let i = 0; i < 22; i++) {
-      const yy = horizon + Math.pow(i / 22, 2) * (h - horizon) + speed;
-      if (yy > h) continue;
-      ctx.globalAlpha = 0.35; ctx.strokeStyle = theme.gradient[2];
+    // fractional phase folded into the perspective curve: each line advances one slot
+    // per cycle, so when `off` wraps 1→0 the set is identical — no synchronized snap.
+    const N = 22, off = (time * 1.6) % 1;
+    ctx.strokeStyle = neonA; ctx.shadowColor = neonA;
+    for (let i = 0; i <= N; i++) {
+      const d = (i + off) / N;
+      if (d > 1) continue;
+      const yy = horizon + d * d * (h - horizon);
+      ctx.globalAlpha = 0.25 + 0.6 * d;   // fade in from the horizon for depth
       ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(w, yy); ctx.stroke();
     }
+    ctx.restore();
     ctx.globalAlpha = 1;
   }
 
