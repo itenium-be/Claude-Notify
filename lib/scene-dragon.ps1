@@ -224,7 +224,7 @@ function New-SceneStopLocal([string]$hex, [double]$offset) {
 # coins poking above the surface, coloured gems and twinkling glints. Static pile;
 # only the glints animate (scale twinkle — the reliable repaint path here).
 function Add-DragonTreasure($canvas, [double]$w, [double]$h, [double]$speed) {
-  $pileH = $h * 0.30
+  $pileH = $h * 0.15
   $pileTop = $h - $pileH
 
   # Solid gold bed across the full width: guarantees the bottom is completely filled.
@@ -298,54 +298,6 @@ function Add-DragonTreasure($canvas, [double]$w, [double]$h, [double]$speed) {
   }
 }
 
-# Glowing coal bed: a dark mound of rounded coals along the bottom, each with a hot
-# core that breathes (ScaleTransform pulse — opacity animation is unreliable here).
-function Add-DragonCoals($canvas, [double]$w, [double]$h, [double]$speed) {
-  $bedTop = $h * 0.78
-  $bed = New-Object System.Windows.Shapes.Rectangle
-  $bed.Width = $w; $bed.Height = $h - $bedTop + 2
-  $bg = New-Object System.Windows.Media.LinearGradientBrush
-  $bg.StartPoint = '0,0'; $bg.EndPoint = '0,1'
-  $bg.GradientStops.Add((New-SceneStopLocal '#2A1A12' 0.0))
-  $bg.GradientStops.Add((New-SceneStopLocal '#1A0F0A' 1.0))
-  $bed.Fill = $bg
-  [System.Windows.Controls.Canvas]::SetLeft($bed, 0); [System.Windows.Controls.Canvas]::SetTop($bed, $bedTop)
-  $canvas.Children.Add($bed) | Out-Null
-
-  for ($row = 0; $row -lt 2; $row++) {
-    $cy = $bedTop + $row * ($h - $bedTop) * 0.45
-    for ($x = -10; $x -lt ($w + 10); $x += 24) {
-      $cw = 22 + (Get-Random -Minimum 0 -Maximum 18)
-      $jx = $x + (Get-Random -Minimum -6 -Maximum 6)
-      $jy = $cy + (Get-Random -Minimum -4 -Maximum 6)
-      $coal = New-Object System.Windows.Shapes.Ellipse
-      $coal.Width = $cw; $coal.Height = $cw * 0.6
-      $coal.Fill = New-Brush '#1A0F0A'
-      [System.Windows.Controls.Canvas]::SetLeft($coal, $jx); [System.Windows.Controls.Canvas]::SetTop($coal, $jy)
-      $canvas.Children.Add($coal) | Out-Null
-      # Hot glowing core.
-      $core = New-Object System.Windows.Shapes.Ellipse
-      $cr = $cw * 0.7
-      $core.Width = $cr; $core.Height = $cr * 0.6
-      $rg = New-Object System.Windows.Media.RadialGradientBrush
-      $rg.GradientStops.Add((New-DragonStop '#FDE047' 0.85 0.0))
-      $rg.GradientStops.Add((New-DragonStop '#F97316' 0.55 0.45))
-      $rg.GradientStops.Add((New-DragonStop '#DC2626' 0.0 1.0))
-      $core.Fill = $rg
-      [System.Windows.Controls.Canvas]::SetLeft($core, $jx + ($cw - $cr) / 2); [System.Windows.Controls.Canvas]::SetTop($core, $jy + ($cw * 0.6 - $cr * 0.6) / 2)
-      $sc = New-Object System.Windows.Media.ScaleTransform 1, 1
-      $sc.CenterX = $cr / 2; $sc.CenterY = $cr * 0.3
-      $core.RenderTransform = $sc
-      $canvas.Children.Add($core) | Out-Null
-      $pdur = (1.3 + (Get-Random -Minimum 0 -Maximum 22) / 10.0) / $speed
-      $pulse = New-Object System.Windows.Media.Animation.DoubleAnimation 0.45, 1.15, ([System.Windows.Duration][TimeSpan]::FromSeconds($pdur))
-      $pulse.AutoReverse = $true; $pulse.RepeatBehavior = [System.Windows.Media.Animation.RepeatBehavior]::Forever
-      $sc.BeginAnimation([System.Windows.Media.ScaleTransform]::ScaleXProperty, $pulse)
-      $sc.BeginAnimation([System.Windows.Media.ScaleTransform]::ScaleYProperty, $pulse)
-    }
-  }
-}
-
 # Dark translucent smoke wisps rising slowly and growing as they climb.
 function Add-DragonSmoke($canvas, [double]$w, [double]$h, [double]$speed) {
   $n = 4
@@ -379,7 +331,7 @@ function Add-DragonSmoke($canvas, [double]$w, [double]$h, [double]$speed) {
 }
 
 # Render the dragon scene into $box.Scene. $cfg: embers (default on) / count / speed /
-# glow / smoke; bottom = 'lava' | 'treasure' | 'coals' | 'none'
+# glow / smoke; bottom = 'lava' | 'treasure' | 'none'
 # (mutually-exclusive bottom layer, default 'lava'). Back (glow) to front (embers).
 function Start-Dragon($box, $cfg) {
   $canvas = $box.Scene
@@ -397,7 +349,6 @@ function Start-Dragon($box, $cfg) {
   switch ($bottom) {
     'lava'     { Add-DragonLava     $canvas $w $h $speed }
     'treasure' { Add-DragonTreasure $canvas $w $h $speed }
-    'coals'    { Add-DragonCoals    $canvas $w $h $speed }
   }
   if ($cfg.smoke)  { Add-DragonSmoke  $canvas $w $h $speed }
   if ($cfg.embers) { Add-DragonEmbers $canvas $w $h $count $speed }
