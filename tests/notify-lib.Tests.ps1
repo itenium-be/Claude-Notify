@@ -25,4 +25,13 @@ Assert-Eq $d.activeTheme 'unicorn' "defaults activeTheme"
 Assert-Eq $d.themes.unicorn.hero '🦄' "defaults unicorn hero"
 Assert-Eq $d.events['needs-input'].body[0].text '{{folder}}' "defaults needs-input body is folder"
 
+# --- New-GradientStops ---
+Assert-Eq (New-GradientStops @('#FF0000 0','#00FF00 1')) `
+  "<GradientStop Color=`"#FF0000`" Offset=`"0`"/>`n<GradientStop Color=`"#00FF00`" Offset=`"1`"/>" `
+  "gradient stops -> xaml"
+Assert-Eq (New-GradientStops @('bad','#0000FF 0.5')) `
+  "<GradientStop Color=`"#0000FF`" Offset=`"0.5`"/>" `
+  "gradient skips unparseable stop"
+Assert-Eq (New-GradientStops @('#123456')) '' "stop without offset skipped"
+
 if ($script:fail -gt 0) { exit 1 } else { Write-Host "ALL PASS" }

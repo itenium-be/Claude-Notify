@@ -35,3 +35,15 @@ function Get-NotifyDefaults {
     }
   }
 }
+
+# ["#RRGGBB offset", ...] -> newline-joined <GradientStop/> XAML. Unparseable stops are skipped.
+function New-GradientStops([string[]]$stops) {
+  $out = foreach ($s in $stops) {
+    $parts = (($s -replace '\s+', ' ').Trim()) -split ' '
+    if ($parts.Count -lt 2) { continue }
+    $color = $parts[0]; $offset = $parts[1]
+    if ($color -notmatch '^#[0-9A-Fa-f]{6}$') { continue }
+    "<GradientStop Color=`"$color`" Offset=`"$offset`"/>"
+  }
+  ($out -join "`n")
+}
