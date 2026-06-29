@@ -220,6 +220,11 @@ function New-NotificationBox {
   foreach ($ln in $BodyLines) {
     $tb = New-Object System.Windows.Controls.TextBlock
     $tb.Text = [string]$ln.text
+    # Bound the line to the card's text column. Without this the left-aligned StackPanel
+    # lets a long line size to its full text width, run off the card edge (hard-clipped),
+    # and slip past the Initialize-NotificationCard marquee — whose gate is
+    # ActualWidth < full-text width. Capping ActualWidth here is what arms the marquee.
+    $tb.MaxWidth = 540   # 586px card − 26 left margin − right breathing room
     $tb.TextTrimming = [System.Windows.TextTrimming]::CharacterEllipsis
     switch ($ln.style) {
       'headline' { $tb.FontSize = 22; $tb.FontWeight = [System.Windows.FontWeights]::SemiBold; $tb.Foreground = (New-Brush '#FFFFFF'); $tb.Margin = (New-Object System.Windows.Thickness 0,4,0,0) }
