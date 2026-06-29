@@ -35,3 +35,29 @@ function New-WebPathData([double]$cx, [double]$cy, [double]$r, [int]$spokes, [in
   }
   $sb.ToString().TrimEnd()
 }
+
+# Filled, closed bat silhouette centred on (0,0): a small body with two scalloped
+# wings. Right side is built explicitly then mirrored to the left, so the shape is
+# symmetric. Wing tips reach +/-w/2; top/bottom reach +/-h/2.
+function New-BatPathData([double]$w, [double]$h) {
+  $ic = [System.Globalization.CultureInfo]::InvariantCulture
+  $hw = $w / 2; $hh = $h / 2
+  $f = { param($v) ([double]$v).ToString('0.##', $ic) }
+  # Right half, top-of-head -> outer wing -> wing notch -> bottom-of-body.
+  $right =
+    "L $(&$f ($hw*0.15)),$(&$f (-$hh*0.55)) " +   # right ear/shoulder
+    "L $(&$f ($hw*0.40)),$(&$f (-$hh*0.15)) " +   # inner wing
+    "L $(&$f ($hw*0.75)),$(&$f (-$hh*0.45)) " +   # outer wing rise (-> 37.5,... for hw=50)
+    "L $(&$f $hw),$(&$f (-$hh*0.10)) " +          # wing tip (+hw)
+    "L $(&$f ($hw*0.70)),$(&$f ($hh*0.35)) " +    # scallop
+    "L $(&$f ($hw*0.30)),$(&$f ($hh*0.10)) " +    # back toward body
+    "L 0,$(&$f $hh) "                              # bottom of body
+  $left =
+    "L $(&$f (-$hw*0.30)),$(&$f ($hh*0.10)) " +
+    "L $(&$f (-$hw*0.70)),$(&$f ($hh*0.35)) " +
+    "L $(&$f (-$hw)),$(&$f (-$hh*0.10)) " +        # wing tip (-hw)
+    "L $(&$f (-$hw*0.75)),$(&$f (-$hh*0.45)) " +
+    "L $(&$f (-$hw*0.40)),$(&$f (-$hh*0.15)) " +
+    "L $(&$f (-$hw*0.15)),$(&$f (-$hh*0.55)) "
+  "M 0,$(&$f (-$hh*0.30)) " + $right + $left + "Z"
+}

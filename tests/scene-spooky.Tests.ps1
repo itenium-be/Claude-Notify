@@ -28,4 +28,14 @@ Assert-True (-not $d.Contains('70,71')) "does not use ',' decimal separator"
 $d2 = New-WebPathData 0 0 50 1 0
 Assert-True ($d2.StartsWith('M')) "spokes<2 / rings<1 still yields a path"
 
+# Bat silhouette: filled, closed path centred on (0,0), width 100 height 60.
+# Wing tips reach +/- hw (=50); a 0.75*hw point gives a predictable .5 decimal.
+$b = New-BatPathData 100 60
+Assert-True ($b.StartsWith('M')) "bat path starts with M (moveto)"
+Assert-True ($b.EndsWith('Z'))   "bat path is closed (filled shape ends with Z)"
+Assert-True ($b.Contains('50,')) "right wing tip reaches +hw (50)"
+Assert-True ($b.Contains('-50,')) "left wing tip reaches -hw (-50)"
+Assert-True ($b.Contains('37.5')) "uses '.' decimal separator (0.75*hw)"
+Assert-True (-not $b.Contains('37,5')) "does not use ',' decimal separator"
+
 if ($script:fail -gt 0) { exit 1 } else { Write-Host "ALL PASS" }
