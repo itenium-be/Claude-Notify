@@ -6,9 +6,16 @@ or The Matrix, we've got you covered. Fully configurable.
 <video src="https://github.com/itenium-be/Yoink/raw/main/site/assets/yoink-unicorn.mp4" autoplay loop muted playsinline></video>
 
 
-## Wire up
+## Install
 
-Point `~/.claude/settings.json` at this repo's hook scripts. If this repo lives at `~/.claude/yoink`:
+```txt
+/plugin marketplace add itenium-be/Yoink
+/plugin install yoink@yoink-marketplace
+```
+
+### Manual Install
+
+Running from a checkout, point `~/.claude/settings.json` at the hook scripts. If the repo lives at `~/.claude/yoink`:
 
 ```jsonc
 "hooks": {
@@ -32,9 +39,13 @@ Point `~/.claude/settings.json` at this repo's hook scripts. If this repo lives 
 
 ## Settings
 
-Fully configurable by updating `settings.json`.
-Use the editor if you want to test-drive the different themes and options.
+Fully configurable by updating `settings.json`. Put your copy at
+`~/.claude/yoink/settings.json` — it overrides the defaults bundled with the plugin and
+survives plugin updates. Custom sounds go in `~/.claude/yoink/sounds/`.
 
+Use the editor if you want to test-drive the different themes and options. It writes
+`settings.json` next to itself, so run it from a checkout and copy the result into
+`~/.claude/yoink/`.
 
 ```powershell
 .\settings-editor.ps1
