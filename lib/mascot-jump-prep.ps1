@@ -7,7 +7,9 @@ function Start-JumpPrep {
   $sp = $slot.TransformToVisual($win).Transform([System.Windows.Point]::new(0, 0))
   $slotCx = $sp.X + $slot.ActualWidth / 2
   $slotBottom = $sp.Y + $slot.ActualHeight
+  $cardLeft = $Box.Card.TransformToVisual($win).Transform([System.Windows.Point]::new(0, 0)).X
   $cardTop = $Box.Card.TransformToVisual($win).Transform([System.Windows.Point]::new(0, 0)).Y
+  $cardRight = $cardLeft + $Box.Card.ActualWidth
   $ax = $Box.AnchorX * $Box.MascotW   # px from image left to torso centre
   $ay = $Box.AnchorY * $Box.MascotH   # px from image top to feet baseline
 
@@ -15,6 +17,8 @@ function Start-JumpPrep {
   $Box.RestLeft = $slotCx - $ax
   $Box.RestTop  = $slotBottom - $ay
   $Box.LandTop  = ($cardTop - 3) - $ay   # feet just above the edge; straight up -> same left
+  # Walk target: mirror the slot's left inset onto the right edge (symmetric).
+  $Box.RightLeft = ($cardRight - ($slotCx - $cardLeft)) - $ax
 
   [System.Windows.Controls.Canvas]::SetLeft($m, $Box.RestLeft)
   [System.Windows.Controls.Canvas]::SetTop($m, $Box.RestTop)

@@ -13,6 +13,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 . (Join-Path $PSScriptRoot 'lib\mascot-player.ps1')
 . (Join-Path $PSScriptRoot 'lib\mascot-jump-prep.ps1')
 . (Join-Path $PSScriptRoot 'lib\mascot-jump.ps1')
+. (Join-Path $PSScriptRoot 'lib\mascot-walk.ps1')
 . (Join-Path $PSScriptRoot 'lib\mascot-confetti.ps1')
 . (Join-Path $PSScriptRoot 'lib\mascot-flag-waver.ps1')
 
@@ -23,7 +24,7 @@ if ($null -eq $screen) { $screen = [System.Windows.Forms.Screen]::FromPoint([Sys
 $wa = $screen.WorkingArea
 
 if ($DryRun) {
-  foreach ($d in 'looking','jump','confetti','flag') {
+  foreach ($d in 'looking','jump','walking','confetti','flag') {
     $dir = Join-Path $PSScriptRoot "mascots\$d"
     if (-not (Test-Path $dir)) { Write-Error "missing mascot dir: $dir"; exit 1 }
   }
@@ -78,7 +79,9 @@ $box.Mascot.Height = $box.MascotH   # Stretch=Uniform -> width follows the canva
 $win.Add_Loaded({
   Start-JumpPrep $box {
     Start-Jump $box {
-      if ($box.Event -eq 'done') { Start-Confetti $box } else { Start-FlagWave $box }
+      Start-Walk $box {
+        if ($box.Event -eq 'done') { Start-Confetti $box } else { Start-FlagWave $box }
+      }
     }
   }
 }.GetNewClosure())

@@ -1,5 +1,6 @@
 # Frame-by-frame flipbook player for an Image element.
 # -Loop plays forever; otherwise -OnDone fires once after the last frame.
+# Returns the DispatcherTimer so a looping caller (e.g. the walk) can stop it.
 function Start-Flipbook {
   param(
     [System.Windows.Controls.Image]$Image,
@@ -31,4 +32,5 @@ function Start-Flipbook {
     $Image.Source = $frames[$state.Idx]
   }.GetNewClosure())
   $timer.Start()
+  return $timer
 }
