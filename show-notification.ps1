@@ -26,6 +26,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 . (Join-Path $PSScriptRoot 'lib\scene-matrix.ps1')
 . (Join-Path $PSScriptRoot 'lib\scene-sakura.ps1')
 . (Join-Path $PSScriptRoot 'lib\scene-unicorn.ps1')
+. (Join-Path $PSScriptRoot 'lib\scene-dragon.ps1')
 . (Join-Path $PSScriptRoot 'notify-lib.ps1')
 
 # --- Resolve the target monitor ---
@@ -163,6 +164,10 @@ if ($theme.scene -and (Get-Prop $theme.scene 'kind')) {
     glitter      = [bool](Get-Prop $theme.scene 'glitter')
     sparkles     = [bool](Get-Prop $theme.scene 'sparkles')
     shootingStar = [bool](Get-Prop $theme.scene 'shootingStar')
+    embers       = [bool](Coalesce (Get-Prop $theme.scene 'embers') $true)
+    glow         = [bool](Get-Prop $theme.scene 'glow')
+    flames       = [bool](Get-Prop $theme.scene 'flames')
+    smoke        = [bool](Get-Prop $theme.scene 'smoke')
   }
 }
 $sceneKinds = @{
@@ -171,6 +176,7 @@ $sceneKinds = @{
   matrix  = { param($b, $c) Start-Matrix $b $c }
   sakura  = { param($b, $c) Start-Sakura $b $c }
   unicorn = { param($b, $c) Start-Unicorn $b $c }
+  dragon  = { param($b, $c) Start-Dragon $b $c }
 }
 $win.Add_Loaded({
   if ($sceneCfg) {
