@@ -168,6 +168,7 @@ if ($theme.scene -and (Get-Prop $theme.scene 'kind')) {
     glow         = [bool](Get-Prop $theme.scene 'glow')
     bottom       = [string](Coalesce (Get-Prop $theme.scene 'bottom') 'lava')
     smoke        = [bool](Get-Prop $theme.scene 'smoke')
+    volcano      = [bool](Get-Prop $theme.scene 'volcano')
   }
 }
 $sceneKinds = @{
