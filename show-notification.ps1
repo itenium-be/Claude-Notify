@@ -66,6 +66,9 @@ $win.Add_MouseLeftButtonDown({
   $win.Close()
 })
 
+# --- Right-click dismisses the card without touching the terminal's focus ---
+$win.Add_MouseRightButtonDown({ $win.Close() })
+
 # --- Dismiss: close when the target terminal gains focus; optional timeout ---
 $script:elapsed = 0.0
 $poll = New-Object System.Windows.Threading.DispatcherTimer
