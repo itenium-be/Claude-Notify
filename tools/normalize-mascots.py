@@ -13,8 +13,8 @@ spindly and pose-dependent, so an auto bbox over-counts them).
 from PIL import Image
 import numpy as np, glob, os, json
 
-ANIMS = ['looking', 'jump', 'confetti', 'flag']
-TORSO = {'looking': 184, 'jump': 101, 'confetti': 93, 'flag': 97}  # hand-measured
+ANIMS = ['looking', 'jump', 'confetti', 'flag', 'walking']
+TORSO = {'looking': 184, 'jump': 101, 'confetti': 93, 'flag': 97, 'walking': 151}  # hand-measured / calibrated
 TARGET = TORSO['looking']  # scale every clip's torso to the (approved) looking size
 SRC, DST = 'mascots_raw', 'mascots'
 
