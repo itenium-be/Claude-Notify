@@ -47,3 +47,59 @@ function New-GradientStops([string[]]$stops) {
   }
   ($out -join "`n")
 }
+
+# Load settings.json from $Dir if present; otherwise return built-in defaults. Never throws.
+function Get-NotifyConfig([string]$Dir) {
+  $path = Join-Path $Dir 'settings.json'
+  if (Test-Path $path) {
+    try {
+      return (Get-Content -Raw -Encoding UTF8 $path | ConvertFrom-Json)
+    } catch {
+      Write-Warning "notify: failed to parse settings.json: $($_.Exception.Message)"
+    }
+  }
+  return Get-NotifyDefaults
+}
+
+# Enumerate theme names from either shape.
+function Get-ThemeNames($cfg) {
+  $themes = Get-Prop $cfg 'themes'
+  if ($themes -is [hashtable]) { return @($themes.Keys) }
+  if ($themes) { return @($themes.PSObject.Properties.Name) }
+  return @('unicorn')
+}
+
+# Active theme name; "random" picks one of the configured themes.
+function Resolve-ThemeName($cfg) {
+  $name = Coalesce (Get-Prop $cfg 'activeTheme') 'unicorn'
+  if ($name -eq 'random') { $name = Get-ThemeNames $cfg | Get-Random }
+  return $name
+}
+
+# A theme as a hashtable, every field falling back to the unicorn default.
+function Resolve-Theme($cfg, [string]$name) {
+  $def = (Get-NotifyDefaults).themes.unicorn
+  $t = Get-Prop (Get-Prop $cfg 'themes') $name
+  @{
+    hero     = (Coalesce (Get-Prop $t 'hero')     $def.hero)
+    gradient = @(Coalesce (Get-Prop $t 'gradient') $def.gradient)
+    rim      = @(Coalesce (Get-Prop $t 'rim')      $def.rim)
+    card     = (Coalesce (Get-Prop $t 'card')     $def.card)
+    palette  = @(Coalesce (Get-Prop $t 'palette')  $def.palette)
+  }
+}
+
+# An event as a hashtable, every field falling back to that event's default.
+function Resolve-Event($cfg, [string]$event) {
+  $defs = (Get-NotifyDefaults).events
+  $def = $defs[$event]; if ($null -eq $def) { $def = $defs['done'] }
+  $e = Get-Prop (Get-Prop $cfg 'events') $event
+  @{
+    label     = (Coalesce (Get-Prop $e 'label')     $def.label)
+    accent    = (Coalesce (Get-Prop $e 'accent')    $def.accent)
+    indicator = (Coalesce (Get-Prop $e 'indicator') $def.indicator)
+    mascot    = (Coalesce (Get-Prop $e 'mascot')    $def.mascot)
+    sound     = (Coalesce (Get-Prop $e 'sound')     $def.sound)
+    body      = @(Coalesce (Get-Prop $e 'body')      $def.body)
+  }
+}

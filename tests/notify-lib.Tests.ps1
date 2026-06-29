@@ -34,4 +34,28 @@ Assert-Eq (New-GradientStops @('bad','#0000FF 0.5')) `
   "gradient skips unparseable stop"
 Assert-Eq (New-GradientStops @('#123456')) '' "stop without offset skipped"
 
+# --- Get-NotifyConfig / resolution (uses repo settings.json one dir up) ---
+$cfg = Get-NotifyConfig (Join-Path $PSScriptRoot '..')
+Assert-Eq (Resolve-ThemeName $cfg) 'unicorn' "active theme name from settings.json"
+
+$theme = Resolve-Theme $cfg 'ocean'
+Assert-Eq $theme.hero '🐳' "resolve named theme hero"
+$missing = Resolve-Theme $cfg 'nope'
+Assert-Eq $missing.hero '🦄' "unknown theme -> unicorn default"
+
+$ev = Resolve-Event $cfg 'needs-input'
+Assert-Eq $ev.label 'Needs you' "resolve event label"
+Assert-Eq $ev.indicator '👋' "resolve event indicator"
+Assert-Eq $ev.body[1].text '{{folder}} · {{branch}}' "resolve event body line"
+
+# Missing file -> defaults (today's look)
+$dcfg = Get-NotifyConfig 'C:\does\not\exist'
+Assert-Eq (Resolve-Theme $dcfg 'unicorn').card '#18181B' "missing config -> default theme"
+Assert-Eq (Resolve-Event $dcfg 'done').body[0].text '{{folder}}' "missing config -> default body"
+
+# random resolves to one of the configured names
+$names = $cfg.themes.PSObject.Properties.Name
+$r = Resolve-ThemeName ([pscustomobject]@{ activeTheme='random'; themes=$cfg.themes })
+Assert-Eq ($names -contains $r) 'True' "random theme name is a configured theme"
+
 if ($script:fail -gt 0) { exit 1 } else { Write-Host "ALL PASS" }
