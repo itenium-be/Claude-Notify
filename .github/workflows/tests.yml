@@ -13,7 +13,10 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        shell: bash # git-bash; ships cygpath, jq, diff, comm, grep
+        # git-bash (ships cygpath, jq, diff, comm, grep). Drop the default `-e`:
+        # the loop captures each test's exit code itself, and errexit would abort
+        # on the first `out="$(bash failing-test)"` before it could be reported.
+        shell: bash --noprofile --norc -uo pipefail {0}
     steps:
       - uses: actions/checkout@v4
 

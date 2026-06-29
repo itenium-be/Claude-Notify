@@ -1,0 +1,10 @@
+# Hooks run under bash (WSL) and tests byte-diff PowerShell output (LF, \r
+# stripped) against golden/fixture files. Windows runners default to
+# autocrlf=true, which would rewrite these to CRLF on checkout and break the
+# diffs — pin every text file to LF on all platforms.
+* text=auto eol=lf
+
+*.png binary
+*.wav binary
+*.mp4 binary
+*.ico binary
