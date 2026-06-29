@@ -66,17 +66,24 @@ function Initialize-NotificationCard($box) {
     $tb.ToolTip = $tb.Text
 
     # Clip a viewport at the current width, let the text run full-width inside it, and
-    # ping-pong a TranslateTransform so the hidden tail scrolls into view.
+    # ping-pong a TranslateTransform so the hidden tail scrolls into view. The viewport
+    # MUST be a Canvas, not a Grid/StackPanel: a Canvas measures its child with infinite
+    # space, so the NoWrap TextBlock lays out at its full text width. A sizing panel would
+    # instead constrain the child to the viewport's ~520px and clip the tail off there,
+    # leaving nothing past ~52 chars to scroll to (the line just slides into emptiness).
     $panel = $tb.Parent
     $idx = $panel.Children.IndexOf($tb)
-    $vp = New-Object System.Windows.Controls.Grid
+    $vp = New-Object System.Windows.Controls.Canvas
     $vp.Width = $avail; $vp.Height = $tb.ActualHeight; $vp.HorizontalAlignment = 'Left'
     $vp.ClipToBounds = $true; $vp.Margin = $tb.Margin
     $panel.Children.RemoveAt($idx)
     $tb.Margin = (New-Object System.Windows.Thickness 0)
-    $tb.HorizontalAlignment = 'Left'
+    # Lift the card-width cap so the full text renders inside the (clipping) Canvas.
+    $tb.MaxWidth = [double]::PositiveInfinity
     $tb.TextTrimming = [System.Windows.TextTrimming]::None
     $tb.TextWrapping = [System.Windows.TextWrapping]::NoWrap
+    [System.Windows.Controls.Canvas]::SetLeft($tb, 0)
+    [System.Windows.Controls.Canvas]::SetTop($tb, 0)
     $tt = New-Object System.Windows.Media.TranslateTransform
     $tb.RenderTransform = $tt
     $vp.Children.Add($tb) | Out-Null

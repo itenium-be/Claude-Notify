@@ -25,4 +25,37 @@ foreach ($tb in $box.BodyTbs) {
   Assert-True ($tb.MaxWidth -le 560) "body line MaxWidth fits inside the 586px card"
 }
 
+# --- Marquee actually reveals the full text ---
+# The card is shown off-screen so its body lines get a real ActualWidth, then the marquee
+# engages. A long line is hosted in a clip viewport and scrolled; for any tail to exist to
+# scroll into view, the TextBlock's own MaxWidth must be lifted - otherwise NoWrap clips it
+# at the card width and the text past ~52 chars is never rendered (permanently cut off).
+$win = $box.Win
+$win.ShowInTaskbar = $false
+$win.WindowStartupLocation = 'Manual'
+$win.Left = -10000; $win.Top = -10000
+$script:marqueeWidth = 0
+$script:viewportWidth = 0
+$win.Add_Loaded({
+  try {
+    # New-NotificationBox's own Loaded already ran the marquee; force a layout pass so the
+    # relaid-out body line reports its real rendered width, then measure.
+    $win.UpdateLayout()
+    $tb = $box.BodyTbs[0]
+    $script:marqueeWidth  = $tb.ActualWidth
+    $script:viewportWidth = $tb.Parent.ActualWidth
+  } finally { $win.Close() }
+})
+# Safety net: never let a misbehaving Loaded hang the suite.
+$guard = New-Object System.Windows.Threading.DispatcherTimer
+$guard.Interval = [TimeSpan]::FromSeconds(5)
+$guard.Add_Tick({ $guard.Stop(); $win.Close() })
+$guard.Start()
+$win.ShowDialog() | Out-Null
+
+# The line must lay out at its FULL text width inside the clip viewport - far wider than
+# the ~520px viewport. If it only renders viewport-width, the tail was clipped at layout
+# and scrolling reveals blank space, not the rest of the message.
+Assert-True ($script:marqueeWidth -gt ($script:viewportWidth * 2)) "marquee'd body line lays out full-width (got $([int]$script:marqueeWidth)px vs viewport $([int]$script:viewportWidth)px)"
+
 if ($script:fail -gt 0) { exit 1 } else { Write-Host "ALL PASS" }
