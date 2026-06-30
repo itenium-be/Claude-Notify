@@ -1,0 +1,21 @@
+# Yoink
+
+> Yoink is a free, open-source Claude Code notification hooks plugin for Windows + WSL. When Claude Code needs input or finishes a task, Yoink pops a themed desktop notification on the monitor where that terminal lives — with a window flash, sound, and an animated Claude mascot. Click the notification to focus the window. It ships 9 skins (Unicorn, Cosmic, Ocean, Sakura, Matrix, Dragon, Vaporwave, Robot, Spooky), themeable sounds, and is fully configurable.
+
+## What it does
+
+- Fires on Claude Code's `SessionStart`, `Stop`, and `Notification` hooks.
+- Captures the terminal's window handle so the notification appears on the correct screen.
+- Click-to-focus brings the originating terminal to the foreground.
+
+## Install
+
+- Marketplace: `/plugin marketplace add itenium-be/Yoink` then `/plugin install yoink@yoink-marketplace`
+- Manual (WSL): `git clone https://github.com/itenium-be/Yoink ~/.claude/yoink`, install `jq`, and wire the hook scripts into `~/.claude/settings.json`.
+- Start a fresh Claude Code session after installing so the window handle is captured.
+
+## Links
+
+- Homepage: https://itenium-be.github.io/Yoink/
+- Source & docs: https://github.com/itenium-be/Yoink
+- Publisher: itenium — https://itenium.be

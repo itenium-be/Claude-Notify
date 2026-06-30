@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://itenium-be.github.io/Yoink/sitemap.xml
